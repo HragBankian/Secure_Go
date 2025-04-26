@@ -6,10 +6,33 @@
   <link rel="stylesheet" href="styles/popup.css">
 </head>
 <body>
-  <div class="container">
-    <h1>SecureGo</h1>
+  <div class="container gradient-bg">
+    <div class="header">
+      <img src="icons/Logo.jpg" alt="SecureGo Logo" class="logo">
+      <h1>SecureGo</h1>
+    </div>
     <div id="content">
-      <!-- Content will be added here -->
+      <div class="feature">
+        <div class="feature-header">
+          <span class="feature-title">Phishing Detector</span>
+          <label class="switch">
+            <input type="checkbox" id="phishing-toggle">
+            <span class="slider round"></span>
+          </label>
+        </div>
+        <p class="feature-description">Detects and alerts you about potential phishing</p>
+      </div>
+      
+      <div class="feature">
+        <div class="feature-header">
+          <span class="feature-title">URL Scanner</span>
+          <label class="switch">
+            <input type="checkbox" id="url-scanner-toggle">
+            <span class="slider round"></span>
+          </label>
+        </div>
+        <p class="feature-description">Scans URLs for malicious content before you visit them</p>
+      </div>
     </div>
   </div>
   <script src="scripts/popup.js"></script>
