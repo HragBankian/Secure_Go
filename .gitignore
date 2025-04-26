@@ -1,0 +1,28 @@
+# Data files
+backend/malicious_url_model/url_dataset.csv
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Model files
+backend/malicious_url_model/url_classifier_model.pkl
+backend/malicious_url_model/feature_names.pkl
