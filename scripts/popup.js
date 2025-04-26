@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fetch(`${API_CONFIG.baseUrl}${API_CONFIG.endpoints.health}`)
       .then(response => response.json())
       .then(data => {
-        if (data.status === 'ok') {
+        if (data.status === 'ok' || data.status === 'healthy' || data.status === 'degraded') {
           if (data.model_loaded) {
             statusDot.className = 'status-dot online';
             statusText.textContent = 'API Online';

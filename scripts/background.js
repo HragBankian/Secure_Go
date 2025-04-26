@@ -61,7 +61,7 @@ function checkApiHealth() {
     })
     .then(data => {
       console.log('API health check response:', data);
-      if (data.status === 'healthy' || data.status === 'degraded') {
+      if (data.status === 'healthy' || data.status === 'ok' || data.status === 'degraded') {
         console.log('API is available');
         API_AVAILABLE = true;
         updateBadge(true);
@@ -354,15 +354,21 @@ function scanEmail(emailData, tabId, sendResponse) {
       (data) => {
         console.log("Email scan results:", data);
 
+        // Debug the returned data structure
+        console.log("API response structure:", Object.keys(data));
+        console.log("API response 'result' field:", data.result);
+        console.log("API response 'success' field:", data.success);
+
         // Map the API response to the expected format
+        // Ensure we include all necessary fields for the content script
         sendResponse({
-          success: data.success,
+          success: data.success === true,
           isPhishing: data.result === 'spam',
-          result: data.result,
-          originalLabel: data.original_label,
+          result: data.result || 'unknown',
+          originalLabel: data.original_label || data.result,
           confidence: data.confidence || 0.9,
           explanation: "Analysis complete.",
-          emailPreview: data.email_preview
+          emailPreview: data.email_preview || emailData.content.substring(0, 100)
         });
       },
       (error) => {

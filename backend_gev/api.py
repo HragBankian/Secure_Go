@@ -132,9 +132,11 @@ print("Loading the phishing detection model...")
 
 # Possible model paths
 possible_paths = [
-    'phishing_model.pth',                  # Current directory
-    'backend_gev/phishing_model.pth',      # From project root
-    '../backend_gev/phishing_model.pth',   # One level up
+    'backend_gev/fixed_phishing_model.pth',  # Our fixed model (try first)
+    'fixed_phishing_model.pth',              # Fixed model in current directory
+    'phishing_model.pth',                    # Original model in current directory
+    'backend_gev/phishing_model.pth',        # Original model from project root
+    '../backend_gev/phishing_model.pth',     # Original model one level up
 ]
 
 MODEL_LOADED = False

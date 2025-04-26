@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const response = await fetch('/health');
             const data = await response.json();
 
-            if (response.ok && data.status === 'ok') {
+            if (response.ok && (data.status === 'ok' || data.status === 'healthy' || data.status === 'degraded')) {
                 if (data.model_loaded) {
                     statusIndicator.textContent = 'Online';
                     statusIndicator.className = 'status-badge online';
@@ -86,6 +86,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch (error) {
             statusIndicator.textContent = 'Offline';
             statusIndicator.className = 'status-badge offline';
+            console.error('API health check failed:', error);
         }
     }
 
