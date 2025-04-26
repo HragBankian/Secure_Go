@@ -2,7 +2,7 @@ import pickle
 import time
 
 # Path to the saved model
-MODEL_PATH = 'url_classifier_model.pkl'
+MODEL_PATH = 'backend/malicious_url_model/url_classifier_model.pkl'
 
 # Load the trained model
 def load_model(path):
