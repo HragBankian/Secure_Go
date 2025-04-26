@@ -1,10 +1,39 @@
 {
   "manifest_version": 3,
-  "name": "SecureGo",
+  "name": "SecureGo Email Phishing Protection",
   "version": "1.0",
-  "description": "A secure Chrome extension",
+  "description": "Detects phishing attempts in emails using AI-powered analysis",
+  "permissions": [
+    "storage",
+    "notifications",
+    "scripting",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "http://localhost:5000/*"
+  ],
   "action": {
     "default_popup": "popup.html"
   },
-  "permissions": []
-} 
+  "background": {
+    "service_worker": "scripts/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "exclude_matches": [
+        "*://chrome.google.com/*",
+        "*://chromewebstore.google.com/*",
+        "https://chrome.google.com/*",
+        "https://*.google.com/webstore/*"
+      ],
+      "js": [
+        "scripts/email-content-script.js",
+        "scripts/url-scanner-content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

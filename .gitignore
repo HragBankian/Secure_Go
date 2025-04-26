@@ -27,3 +27,4 @@ var/
 backend/malicious_url_model/url_classifier_model.pkl
 backend/malicious_url_model/feature_names.pkl
 backend/.env
+

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Phishing Detection API{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .stat-card {
+        background-color: #fff;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        text-align: center;
+    }
+    
+    .stat-card h3 {
+        margin-top: 0;
+        color: #6c757d;
+        font-size: 1rem;
+    }
+    
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #343a40;
+        margin: 10px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2>Dashboard</h2>
+<p>This dashboard will provide insights into your phishing detection system.</p>
+
+<div class="stats-container">
+    <div class="stat-card">
+        <h3>Total Emails Scanned</h3>
+        <div class="stat-value">{{ stats.total_emails|default(0) }}</div>
+    </div>
+    
+    <div class="stat-card">
+        <h3>Phishing Emails Detected</h3>
+        <div class="stat-value">{{ stats.phishing_emails|default(0) }}</div>
+    </div>
+    
+    <div class="stat-card">
+        <h3>Legitimate Emails</h3>
+        <div class="stat-value">{{ stats.legitimate_emails|default(0) }}</div>
+    </div>
+    
+    <div class="stat-card">
+        <h3>Detection Rate</h3>
+        <div class="stat-value">{{ stats.detection_rate|default('0%') }}</div>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="chart-container">
+        <h3>Daily Detections</h3>
+        <div id="daily-chart" style="width: 100%; height: 250px;"></div>
+    </div>
+    
+    <div class="chart-container">
+        <h3>Detection Types</h3>
+        <div id="types-chart" style="width: 100%; height: 250px;"></div>
+    </div>
+    
+    <div class="chart-container">
+        <h3>Common Phishing Keywords</h3>
+        <div id="keywords-chart" style="width: 100%; height: 250px;"></div>
+    </div>
+    
+    <div class="chart-container">
+        <h3>Detection Accuracy</h3>
+        <div id="accuracy-chart" style="width: 100%; height: 250px;"></div>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Recent Detections</h3>
+    <p>This section will show recent email scans and their results.</p>
+    <p class="placeholder-message">Dashboard data will be available after the system has processed some emails.</p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Placeholder for future dashboard chart initialization
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Dashboard charts will be implemented in the future');
+        // Charts will be added here using a library like Chart.js
+    });
+</script>
+{% endblock %} 

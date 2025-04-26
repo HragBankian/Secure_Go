@@ -1,17 +1,207 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>SecureGo</title>
   <meta charset="UTF-8">
-  <link rel="stylesheet" href="styles/popup.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SecureGo Email Protection</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      width: 320px;
+      padding: 15px;
+      margin: 0;
+    }
+    
+    .header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #eaeaea;
+      padding-bottom: 10px;
+    }
+    
+    .logo {
+      width: 24px;
+      height: 24px;
+      margin-right: 10px;
+    }
+    
+    h1 {
+      font-size: 18px;
+      margin: 0;
+      color: #333;
+    }
+    
+    .status {
+      margin: 15px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .status-indicator {
+      display: flex;
+      align-items: center;
+    }
+    
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    
+    .online {
+      background-color: #4CAF50;
+    }
+    
+    .offline {
+      background-color: #F44336;
+    }
+    
+    .warning {
+      background-color: #FFC107;
+    }
+    
+    .feature-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 10px 0;
+    }
+    
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 20px;
+    }
+    
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 20px;
+    }
+    
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 2px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    
+    input:checked + .toggle-slider {
+      background-color: #2196F3;
+    }
+    
+    input:checked + .toggle-slider:before {
+      transform: translateX(18px);
+    }
+    
+    .footer {
+      font-size: 12px;
+      color: #666;
+      text-align: center;
+      margin-top: 15px;
+      padding-top: 10px;
+      border-top: 1px solid #eaeaea;
+    }
+
+    .stats {
+      background-color: #f9f9f9;
+      border-radius: 5px;
+      padding: 10px;
+      margin: 10px 0;
+    }
+
+    .stats-item {
+      display: flex;
+      justify-content: space-between;
+      margin: 5px 0;
+    }
+
+    .stats-label {
+      font-weight: 500;
+    }
+
+    button {
+      background-color: #2196F3;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-top: 10px;
+      width: 100%;
+    }
+
+    button:hover {
+      background-color: #0b7dda;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>SecureGo</h1>
-    <div id="content">
-      <!-- Content will be added here -->
+  <div class="header">
+    <img src="icons/icon-48.png" alt="SecureGo logo" class="logo">
+    <h1>SecureGo Email Protection</h1>
+  </div>
+  
+  <div class="status">
+    <div class="status-indicator">
+      <div id="status-dot" class="status-dot offline"></div>
+      <span id="status-text">Checking API status...</span>
+    </div>
+    <button id="refresh-status">Refresh</button>
+  </div>
+  
+  <div class="feature-toggle">
+    <span>Email Phishing Detection</span>
+    <label class="toggle-switch">
+      <input type="checkbox" id="phishing-toggle" checked>
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+  
+  <div class="stats">
+    <h3 style="margin-top: 0; margin-bottom: 10px;">Statistics</h3>
+    <div class="stats-item">
+      <span class="stats-label">Emails Scanned:</span>
+      <span id="emails-scanned">0</span>
+    </div>
+    <div class="stats-item">
+      <span class="stats-label">Phishing Detected:</span>
+      <span id="phishing-detected">0</span>
+    </div>
+    <div class="stats-item">
+      <span class="stats-label">Detection Rate:</span>
+      <span id="detection-rate">0%</span>
     </div>
   </div>
+
+  <button id="open-dashboard">Open Full Dashboard</button>
+  
+  <div class="footer">
+    Powered by AI - SecureGo Extension v1.0
+  </div>
+
   <script src="scripts/popup.js"></script>
 </body>
 </html> 

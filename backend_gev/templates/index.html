@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Phishing Detection API{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Phishing Email Detector</h2>
+    <p>Use this tool to check if an email is legitimate (ham) or phishing (spam).</p>
+    
+    <form id="email-check-form">
+        <div class="form-group">
+            <label for="email-text">Email Content</label>
+            <textarea id="email-text" name="email" placeholder="Paste email content here..."></textarea>
+        </div>
+        <button type="submit">Check Email</button>
+    </form>
+    
+    <div id="result" class="result" style="display: none;"></div>
+</div>
+
+<div class="card">
+    <h2>API Information</h2>
+    <p>This is a machine learning-powered API for detecting phishing emails.</p>
+    <p>To use the API programmatically, send a POST request to <code>/AI</code> with a JSON payload containing an email key.</p>
+    <pre>{
+    "email": "Your email content here"
+}</pre>
+    <p>For more information, check out the <a href="https://github.com/yourusername/phishing-detection-api" target="_blank">GitHub repository</a>.</p>
+</div>
+{% endblock %} 
