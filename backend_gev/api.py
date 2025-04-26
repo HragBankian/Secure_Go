@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template, url_for
 from flask_cors import CORS
 import torch
 import re
@@ -6,6 +6,7 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 import os
+import datetime
 
 # Ensure NLTK resources are downloaded
 try:
@@ -18,6 +19,15 @@ except LookupError:
 # Initialize Flask app
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
+
+# Track some basic stats
+stats = {
+    'total_emails': 0,
+    'phishing_emails': 0,
+    'legitimate_emails': 0,
+    'detection_rate': '0%',
+    'recent_detections': []
+}
 
 # Initialize lemmatizer and stopwords
 lemmatizer = WordNetLemmatizer()
@@ -126,6 +136,24 @@ def predict_email(email_text):
     
     return predicted_label[0]
 
+# Custom template filter for current year
+@app.template_filter('now')
+def filter_now(format_string):
+    if format_string == 'year':
+        return datetime.datetime.now().year
+    return datetime.datetime.now().strftime(format_string)
+
+# Route for the home page
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+# Route for the dashboard page
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html', stats=stats)
+
+# API endpoint to analyze emails
 @app.route('/AI', methods=['POST'])
 def analyze_email():
     """Endpoint to analyze if an email is ham or spam"""
@@ -149,9 +177,25 @@ def analyze_email():
         # Assuming the model's labels are already 'ham'/'spam' or 'legitimate'/'phishing'
         if result.lower() in ['legitimate', 'ham']:
             classification = 'ham'
+            stats['legitimate_emails'] += 1
         else:
             classification = 'spam'
-            
+            stats['phishing_emails'] += 1
+        
+        # Update stats
+        stats['total_emails'] += 1
+        if stats['total_emails'] > 0:
+            phishing_percentage = (stats['phishing_emails'] / stats['total_emails']) * 100
+            stats['detection_rate'] = f"{phishing_percentage:.1f}%"
+        
+        # Add to recent detections (keep only latest 10)
+        stats['recent_detections'].insert(0, {
+            'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'result': classification,
+            'email_preview': email_text[:50] + '...' if len(email_text) > 50 else email_text
+        })
+        stats['recent_detections'] = stats['recent_detections'][:10]
+        
         return jsonify({
             'result': classification,
             'original_label': result,
@@ -165,6 +209,17 @@ def analyze_email():
 @app.route('/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'ok', 'model_loaded': MODEL_LOADED})
+
+# Statistics endpoint for the extension
+@app.route('/stats', methods=['GET'])
+def api_stats():
+    return jsonify({
+        'total_emails': stats['total_emails'],
+        'phishing_emails': stats['phishing_emails'],
+        'legitimate_emails': stats['legitimate_emails'],
+        'detection_rate': stats['detection_rate'],
+        'recent_count': len(stats['recent_detections'])
+    })
 
 if __name__ == '__main__':
     # Run the Flask app

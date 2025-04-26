@@ -1,140 +1,173 @@
-// Background script for SecureGo extension
-// Handles communication with backend services
+// SecureGo Extension - Background Script
+// Handles communication between content scripts and the backend API
 
-// Configuration for API endpoints
-const API_ENDPOINTS = {
-  emailAnalysis: "https://api.securego.example/analyze-email", // Replace with your actual API endpoint
-  urlScanning: "https://api.securego.example/scan-urls" // Replace with your actual API endpoint
+// API endpoint configuration
+const API_CONFIG = {
+  baseUrl: "http://localhost:5000", // Default local development server
+  endpoints: {
+    emailScan: "/AI",
+    health: "/health"
+  }
 };
+
+// Badge colors for different states
+const BADGE_COLORS = {
+  safe: "#4CAF50",    // Green
+  warning: "#FFC107", // Yellow
+  danger: "#F44336",  // Red
+  default: "#757575"  // Gray
+};
+
+// Initialize the extension
+function initializeExtension() {
+  console.log("SecureGo Extension background script initialized");
+
+  // Check if the API is available
+  checkApiHealth();
+
+  // Set default badge
+  updateBadge("", BADGE_COLORS.default);
+}
+
+// Check the health of the API server
+function checkApiHealth() {
+  fetch(`${API_CONFIG.baseUrl}${API_CONFIG.endpoints.health}`)
+    .then(response => response.json())
+    .then(data => {
+      console.log("API health check:", data);
+      if (data.status === "ok" && data.model_loaded) {
+        console.log("API is healthy and model is loaded");
+      } else {
+        console.warn("API is running but model is not loaded");
+      }
+    })
+    .catch(error => {
+      console.error("API health check failed:", error);
+    });
+}
+
+// Update the extension badge
+function updateBadge(text, color) {
+  chrome.action.setBadgeText({ text: text });
+  chrome.action.setBadgeBackgroundColor({ color: color });
+}
 
 // Listen for messages from content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  // Handle email scanning requests
+  console.log("Received message in background script:", message, "from tab:", sender.tab?.id);
+
   if (message.action === "scanEmail") {
-    // Log the received email data (for development purposes)
-    console.log("Received email data:", message.emailData);
-    
-    // Forward the email data to the backend
-    sendEmailToBackend(message.emailData)
-      .then(response => {
-        console.log("Email data sent to backend successfully");
-        sendResponse({ success: true });
+    // Extract email data
+    const emailData = message.emailData;
+
+    if (!emailData || !emailData.content) {
+      console.error("Invalid email data received:", emailData);
+      sendResponse({ status: "error", message: "Invalid email data" });
+      return true;
+    }
+
+    console.log("Processing email content, length:", emailData.content.length);
+    if (emailData.content.length > 100) {
+      console.log("Email preview:", emailData.content.substring(0, 100) + "...");
+    }
+
+    // Send email data to API for phishing detection
+    scanEmail(emailData)
+      .then(result => {
+        console.log("Phishing scan result:", result);
+
+        // Update badge based on result
+        if (result.result === "spam") {
+          updateBadge("!", BADGE_COLORS.danger);
+
+          // Show notification for phishing emails
+          chrome.notifications.create({
+            type: "basic",
+            iconUrl: "icons/warning-icon-128.png", // You need to have this icon
+            title: "Phishing Alert",
+            message: "The email you're viewing might be a phishing attempt. Exercise caution!"
+          });
+        } else {
+          updateBadge("✓", BADGE_COLORS.safe);
+
+          // Update statistics
+          updateEmailStatistics(result.result === "spam");
+        }
+
+        // Send result back to content script
+        console.log("Sending scan results back to content script");
+        sendResponse({ status: "success", result: result });
       })
       .catch(error => {
-        console.error("Error sending email data to backend:", error);
-        sendResponse({ success: false, error: error.message });
+        console.error("Error scanning email:", error);
+        updateBadge("?", BADGE_COLORS.warning);
+        sendResponse({ status: "error", message: error.message });
       });
-    
-    // Return true to indicate we'll respond asynchronously
-    return true;
-  }
-  
-  // Handle URL scanning requests
-  if (message.action === "scanUrls") {
-    // Log the received URL data (for development purposes)
-    console.log("Received URL data for scanning:", message.urlData);
-    
-    // Check if URL scanning is enabled
-    chrome.storage.sync.get(['urlScannerEnabled'], function(result) {
-      if (result.urlScannerEnabled !== false) { // Default to enabled if not set
-        // Send URLs to backend for scanning
-        sendUrlsToBackend(message.urlData)
-          .then(results => {
-            console.log("URL scan results received from backend:", results);
-            sendResponse({ success: true, results: results });
-          })
-          .catch(error => {
-            console.error("Error scanning URLs:", error);
-            sendResponse({ success: false, error: error.message });
-          });
-      } else {
-        console.log("URL scanning is disabled");
-        sendResponse({ success: false, disabled: true });
-      }
-    });
-    
-    // Return true to indicate we'll respond asynchronously
+
+    // Return true to indicate we will send a response asynchronously
     return true;
   }
 });
 
-/**
- * Send email data to the backend for analysis
- * @param {Object} emailData - Object containing email information
- * @returns {Promise} - Promise resolving with the API response
- */
-async function sendEmailToBackend(emailData) {
+// Send email to API for scanning
+async function scanEmail(emailData) {
+  // Prepare the data for API
+  // The API expects a single "email" field with the content
+  const payload = {
+    email: emailData.content
+  };
+
+  console.log(`Sending API request to ${API_CONFIG.baseUrl}${API_CONFIG.endpoints.emailScan}`);
+
   try {
-    // Prepare the request payload with the raw email data
-    const payload = {
-      sender: emailData.sender,
-      subject: emailData.subject,
-      content: emailData.content,
-      timestamp: new Date().toISOString(),
-      source: "chrome-extension"
-    };
-    
-    console.log("Sending email payload to backend:", payload);
-    
-    // Send the POST request to the backend
-    const response = await fetch(API_ENDPOINTS.emailAnalysis, {
-      method: 'POST',
+    // Make API request
+    const response = await fetch(`${API_CONFIG.baseUrl}${API_CONFIG.endpoints.emailScan}`, {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json"
       },
       body: JSON.stringify(payload)
     });
-    
-    // Handle the response
+
+    console.log("API response status:", response.status);
+
+    // Handle API response
     if (!response.ok) {
-      throw new Error(`API request failed with status: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      console.error("API error response:", errorData);
+      throw new Error(errorData.error || `API request failed with status: ${response.status}`);
     }
-    
-    return await response.json();
+
+    // Return the scan result
+    const result = await response.json();
+    console.log("API response data:", result);
+    return result;
   } catch (error) {
-    console.error("Error in sendEmailToBackend:", error);
+    console.error("API request failed:", error);
     throw error;
   }
 }
 
-/**
- * Send URLs to the backend for scanning
- * @param {Object} urlData - Object containing URLs to scan
- * @returns {Promise} - Promise resolving with scan results
- */
-async function sendUrlsToBackend(urlData) {
-  try {
-    // Prepare the request payload with URL data
-    const payload = {
-      pageUrl: urlData.pageUrl,
-      links: urlData.links,
-      timestamp: new Date().toISOString(),
-      source: "chrome-extension"
+// Update email statistics after scans
+function updateEmailStatistics(isPhishing) {
+  chrome.storage.local.get(['emailStats'], function (result) {
+    const stats = result.emailStats || {
+      totalScanned: 0,
+      phishingDetected: 0,
+      lastUpdated: Date.now()
     };
-    
-    console.log("Sending URL payload to backend:", payload);
-    
-    // Send the POST request to the backend
-    const response = await fetch(API_ENDPOINTS.urlScanning, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
-    
-    // Handle the response
-    if (!response.ok) {
-      throw new Error(`URL scanning API request failed with status: ${response.status}`);
+
+    // Update stats
+    stats.totalScanned += 1;
+    if (isPhishing) {
+      stats.phishingDetected += 1;
     }
-    
-    const data = await response.json();
-    
-    // Expected response format:
-    // { results: [{ url: "https://example.com", isMalicious: true }, ...] }
-    return data.results || [];
-  } catch (error) {
-    console.error("Error in sendUrlsToBackend:", error);
-    throw error;
-  }
-} 
+    stats.lastUpdated = Date.now();
+
+    // Save updated stats
+    chrome.storage.local.set({ emailStats: stats });
+  });
+}
+
+// Initialize the extension when the script loads
+initializeExtension(); 

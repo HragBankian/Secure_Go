@@ -1,8 +1,17 @@
 {
   "manifest_version": 3,
-  "name": "SecureGo",
+  "name": "SecureGo Email Phishing Protection",
   "version": "1.0",
-  "description": "A secure Chrome extension",
+  "description": "Detects phishing attempts in emails using AI-powered analysis",
+  "permissions": [
+    "storage",
+    "notifications",
+    "scripting",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "http://localhost:5000/*"
+  ],
   "action": {
     "default_popup": "popup.html"
   },
@@ -12,36 +21,19 @@
   "content_scripts": [
     {
       "matches": [
-        "*://mail.google.com/*",
-        "*://outlook.live.com/*",
-        "*://outlook.office.com/*", 
-        "*://outlook.office365.com/*",
-        "*://mail.yahoo.com/*"
+        "<all_urls>"
       ],
-      "js": ["scripts/email-content-script.js"],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": ["<all_urls>"],
       "exclude_matches": [
         "*://chrome.google.com/*",
         "*://chromewebstore.google.com/*",
         "https://chrome.google.com/*",
         "https://*.google.com/webstore/*"
       ],
-      "js": ["scripts/url-scanner-content.js"],
+      "js": [
+        "scripts/email-content-script.js",
+        "scripts/url-scanner-content.js"
+      ],
       "run_at": "document_idle"
     }
-  ],
-  "permissions": [
-    "storage",
-    "activeTab"
-  ],
-  "host_permissions": [
-    "*://mail.google.com/*",
-    "*://outlook.live.com/*",
-    "*://outlook.office.com/*",
-    "*://outlook.office365.com/*",
-    "*://mail.yahoo.com/*"
   ]
-} 
+}
