@@ -368,6 +368,42 @@
         border-bottom: 2px solid var(--light);
         padding-bottom: 0.5rem;
     }
+    
+    /* Trusted Domains Styles */
+    .trusted-domains-list {
+        margin: 15px 0;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    
+    .trusted-domain-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        background-color: #f5f5f5;
+        border-radius: 4px;
+        margin-bottom: 8px;
+    }
+    
+    .btn-remove {
+        background: none;
+        border: none;
+        color: var(--danger);
+        cursor: pointer;
+        padding: 2px 5px;
+        font-size: 0.9rem;
+    }
+    
+    .add-domain-form {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .add-domain-form input {
+        flex-grow: 1;
+    }
 </style>
 {% endblock %}
 
@@ -718,6 +754,41 @@
                     <span class="slider"></span>
                 </label>
             </div>
+            
+            <!-- Add trusted domains setting -->
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-title">Trusted Domains</div>
+                    <div class="setting-description">Always ignore NSFW detection on these domains</div>
+                </div>
+                <button id="manage-trusted-btn" class="btn"><i class="fas fa-cog"></i> Manage</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Trusted Domains List -->
+    <div class="panel" id="trusted-domains-panel" style="margin-top: 20px;">
+        <h4>Trusted Domains List</h4>
+        <p>These domains will be ignored by the NSFW detection system:</p>
+        
+        <div class="trusted-domains-list">
+            <div class="trusted-domain-item">
+                <span>securego.com</span>
+                <button class="btn-remove"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="trusted-domain-item">
+                <span>mail.securego.com</span>
+                <button class="btn-remove"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="trusted-domain-item">
+                <span>dashboard.securego.com</span>
+                <button class="btn-remove"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        
+        <div class="add-domain-form">
+            <input type="text" id="new-domain-input" placeholder="Enter domain to whitelist..." class="form-control">
+            <button id="add-domain-btn" class="btn"><i class="fas fa-plus"></i> Add Domain</button>
         </div>
     </div>
 </div>
@@ -935,6 +1006,80 @@
                     }
                 });
             });
+            
+            // Manage trusted domains
+            const manageTrustedBtn = document.getElementById('manage-trusted-btn');
+            const trustedDomainsPanel = document.getElementById('trusted-domains-panel');
+            const addDomainBtn = document.getElementById('add-domain-btn');
+            const newDomainInput = document.getElementById('new-domain-input');
+            
+            // Toggle trusted domains panel
+            manageTrustedBtn.addEventListener('click', function() {
+                trustedDomainsPanel.style.display = trustedDomainsPanel.style.display === 'none' || trustedDomainsPanel.style.display === '' ? 'block' : 'none';
+            });
+            
+            // Initially hide the panel
+            trustedDomainsPanel.style.display = 'none';
+            
+            // Add new domain
+            addDomainBtn.addEventListener('click', function() {
+                const domain = newDomainInput.value.trim();
+                if (domain) {
+                    addTrustedDomain(domain);
+                    newDomainInput.value = '';
+                }
+            });
+            
+            // Add domain on Enter key
+            newDomainInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    const domain = newDomainInput.value.trim();
+                    if (domain) {
+                        addTrustedDomain(domain);
+                        newDomainInput.value = '';
+                    }
+                }
+            });
+            
+            // Set up remove buttons
+            document.querySelectorAll('.btn-remove').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const domainItem = this.parentElement;
+                    domainItem.remove();
+                    showNotification('Domain removed from whitelist');
+                });
+            });
+            
+            // Function to add trusted domain
+            function addTrustedDomain(domain) {
+                const domainsList = document.querySelector('.trusted-domains-list');
+                
+                // Create new domain item
+                const domainItem = document.createElement('div');
+                domainItem.className = 'trusted-domain-item';
+                
+                // Domain text
+                const domainText = document.createElement('span');
+                domainText.textContent = domain;
+                
+                // Remove button
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'btn-remove';
+                removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+                
+                // Add remove event
+                removeBtn.addEventListener('click', function() {
+                    domainItem.remove();
+                    showNotification('Domain removed from whitelist');
+                });
+                
+                // Assemble and add to list
+                domainItem.appendChild(domainText);
+                domainItem.appendChild(removeBtn);
+                domainsList.appendChild(domainItem);
+                
+                showNotification('Domain added to whitelist');
+            }
         }
         
         // Simple notification function
