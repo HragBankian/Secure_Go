@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Initialize UI elements
   const phishingToggle = document.getElementById('phishing-toggle');
   const nsfwToggle = document.getElementById('nsfw-toggle');
+  const urlScannerToggle = document.getElementById('url-scanner-toggle');
   const refreshButton = document.getElementById('refresh-status');
   const openDashboardButton = document.getElementById('open-dashboard');
   const statusDot = document.getElementById('status-dot');
@@ -22,6 +23,13 @@ document.addEventListener('DOMContentLoaded', function () {
   const nsfwDetectionRateElem = document.getElementById('nsfw-detection-rate');
   const nsfwBlockedCount = document.getElementById('nsfw-blocked-count');
   const nsfwDetailsLink = document.getElementById('nsfw-details-link');
+  
+  // URL Scanner statistics elements
+  const urlsChecked = document.getElementById('urls-checked');
+  const maliciousDetected = document.getElementById('malicious-detected');
+  const safeUrls = document.getElementById('safe-urls');
+  const urlDetectionRateElem = document.getElementById('url-detection-rate');
+  const urlScannerDetailsLink = document.getElementById('url-scanner-details-link');
 
   // API configuration
   const API_CONFIG = {
@@ -43,6 +51,9 @@ document.addEventListener('DOMContentLoaded', function () {
   
   // Load NSFW statistics
   loadNsfwStatistics();
+  
+  // Load URL Scanner statistics
+  loadUrlScannerStatistics();
 
   // Event listeners
   phishingToggle.addEventListener('change', function () {
@@ -59,9 +70,17 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
+  urlScannerToggle.addEventListener('change', function () {
+    // Save setting to storage
+    chrome.storage.sync.set({ 'urlScannerEnabled': this.checked }, function () {
+      console.log('URL Scanner setting saved:', urlScannerToggle.checked);
+    });
+  });
+
   refreshButton.addEventListener('click', function () {
     checkApiStatus();
     loadNsfwStatistics(); // Refresh NSFW stats too
+    loadUrlScannerStatistics(); // Refresh URL Scanner stats too
   });
 
   openDashboardButton.addEventListener('click', function () {
@@ -76,13 +95,22 @@ document.addEventListener('DOMContentLoaded', function () {
       chrome.tabs.create({ url: chrome.runtime.getURL("html/nsfw-dashboard.html") });
     });
   }
+  
+  // Add dashboard link for URL Scanner details if available
+  if (urlScannerDetailsLink) {
+    urlScannerDetailsLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      chrome.tabs.create({ url: `${API_CONFIG.baseUrl}${API_CONFIG.endpoints.dashboard}?source=extension#url-scanner` });
+    });
+  }
 
   // Functions
   function loadSettings() {
-    chrome.storage.sync.get(['phishingEnabled', 'nsfwCheckEnabled'], function (result) {
+    chrome.storage.sync.get(['phishingEnabled', 'nsfwCheckEnabled', 'urlScannerEnabled'], function (result) {
       // Default to enabled if not set
       phishingToggle.checked = result.phishingEnabled !== false;
       nsfwToggle.checked = result.nsfwCheckEnabled !== false;
+      urlScannerToggle.checked = result.urlScannerEnabled !== false;
     });
   }
 
@@ -269,6 +297,59 @@ document.addEventListener('DOMContentLoaded', function () {
       
       // Add to list
       nsfwRecentList.appendChild(listItem);
+    });
+  }
+  
+  // Load URL Scanner statistics
+  function loadUrlScannerStatistics() {
+    // Load URL Scanner stats from storage
+    chrome.storage.local.get(['urlScannerStats', 'urlScannerCache'], function (result) {
+      let totalScanned = 0;
+      let maliciousCount = 0;
+      let safeCount = 0;
+      
+      // If we have dedicated stats
+      if (result.urlScannerStats) {
+        totalScanned = result.urlScannerStats.totalScanned || 0;
+        maliciousCount = result.urlScannerStats.maliciousCount || 0;
+        safeCount = result.urlScannerStats.safeCount || 0;
+      } 
+      // Otherwise compute from cache if available
+      else if (result.urlScannerCache) {
+        const cache = result.urlScannerCache;
+        totalScanned = Object.keys(cache).length;
+        
+        // Count malicious entries
+        for (const url in cache) {
+          if (cache[url].isMalicious) {
+            maliciousCount++;
+          } else {
+            safeCount++;
+          }
+        }
+      }
+      
+      // Update basic stats UI
+      if (urlsChecked) urlsChecked.textContent = totalScanned;
+      if (maliciousDetected) maliciousDetected.textContent = maliciousCount;
+      if (safeUrls) safeUrls.textContent = safeCount;
+      
+      // Calculate and update detection rate if element exists
+      if (urlDetectionRateElem && totalScanned > 0) {
+        const rate = ((maliciousCount / totalScanned) * 100).toFixed(1);
+        urlDetectionRateElem.textContent = `${rate}%`;
+      }
+      
+      // Save computed stats for consistency
+      chrome.storage.local.set({
+        'urlScannerStats': {
+          totalScanned: totalScanned,
+          maliciousCount: maliciousCount,
+          safeCount: safeCount,
+          detectionRate: totalScanned > 0 ? (maliciousCount / totalScanned) : 0,
+          lastUpdated: Date.now()
+        }
+      });
     });
   }
 }); 

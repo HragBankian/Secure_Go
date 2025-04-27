@@ -300,6 +300,44 @@
     </div>
   </div>
   
+  <!-- New URL Scanner Section -->
+  <div class="feature-section">
+    <div class="section-header">
+      <h3>URL Scanner</h3>
+      <a href="#" id="url-scanner-details-link">View Details</a>
+    </div>
+    
+    <div class="feature-toggle">
+      <div>
+        <span>Malicious URL Detection</span>
+        <div class="feature-description">Protect against phishing and malicious websites</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="url-scanner-toggle" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    
+    <div class="stats" id="url-scanner-stats">
+      <div class="stats-item">
+        <span class="stats-label">URLs Scanned:</span>
+        <span id="urls-checked">0</span>
+      </div>
+      <div class="stats-item">
+        <span class="stats-label">Malicious URLs:</span>
+        <span id="malicious-detected" class="warning-stat">0</span>
+      </div>
+      <div class="stats-item">
+        <span class="stats-label">Safe URLs:</span>
+        <span id="safe-urls">0</span>
+      </div>
+      <div class="stats-item">
+        <span class="stats-label">Detection Rate:</span>
+        <span id="url-detection-rate">0%</span>
+      </div>
+    </div>
+  </div>
+  
   <div class="stats">
     <h3 style="margin-top: 0; margin-bottom: 10px;">Email Statistics</h3>
     <div class="stats-item">
