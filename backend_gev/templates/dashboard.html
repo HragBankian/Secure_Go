@@ -609,12 +609,12 @@
     </div>
 </div>
 
-<!-- NSFW Sites Panel -->
+<!-- NSFW Sites Detected Panel -->
 <div class="card recent-detections">
     <div class="chart-header">
         <h3>NSFW Sites Detected</h3>
         <div class="chart-actions">
-            <button id="nsfw-refresh-btn"><i class="fas fa-sync-alt"></i> Refresh</button>
+            <button id="nsfw-sites-refresh-btn"><i class="fas fa-sync-alt"></i> Refresh</button>
             <button><i class="fas fa-filter"></i> Filter</button>
         </div>
     </div>
@@ -632,23 +632,23 @@
             </thead>
             <tbody id="nsfw-sites-tbody">
                 <tr>
-                    <td>example-nsfw-site1.com</td>
-                    <td>2024-05-02</td>
-                    <td>2024-05-12</td>
-                    <td>8</td>
+                    <td>onlyfans.com</td>
+                    <td>April 26, 2025</td>
+                    <td>April 26, 2025</td>
+                    <td>7</td>
                     <td><span class="tag tag-nsfw">NSFW</span></td>
                 </tr>
                 <tr>
-                    <td>explicit-content-domain.net</td>
-                    <td>2024-05-05</td>
-                    <td>2024-05-10</td>
-                    <td>3</td>
+                    <td>pornhub.com</td>
+                    <td>April 26, 2025</td>
+                    <td>April 26, 2025</td>
+                    <td>12</td>
                     <td><span class="tag tag-nsfw">NSFW</span></td>
                 </tr>
                 <tr>
-                    <td>adult-site-example.org</td>
-                    <td>2024-04-28</td>
-                    <td>2024-05-08</td>
+                    <td>xvideos.com</td>
+                    <td>April 26, 2025</td>
+                    <td>April 26, 2025</td>
                     <td>5</td>
                     <td><span class="tag tag-nsfw">NSFW</span></td>
                 </tr>
@@ -683,28 +683,28 @@
             </thead>
             <tbody id="activity-tbody">
                 <tr>
-                    <td>2024-05-12 14:23:45</td>
-                    <td>example-nsfw-site1.com</td>
+                    <td>April 26, 2025</td>
+                    <td>pornhub.com</td>
                     <td>Warning Displayed</td>
                     <td><span class="tag tag-warning">Warning</span></td>
                 </tr>
                 <tr>
-                    <td>2024-05-12 13:10:22</td>
-                    <td>explicit-content-domain.net</td>
+                    <td>April 26, 2025</td>
+                    <td>xvideos.com</td>
                     <td>Access Blocked</td>
                     <td><span class="tag tag-nsfw">Blocked</span></td>
                 </tr>
                 <tr>
-                    <td>2024-05-11 18:45:30</td>
-                    <td>adult-site-example.org</td>
+                    <td>April 26, 2025</td>
+                    <td>onlyfans.com</td>
                     <td>User Proceeded</td>
                     <td><span class="tag tag-warning">Allowed</span></td>
                 </tr>
                 <tr>
-                    <td>2024-05-10 09:12:15</td>
-                    <td>safe-website.com</td>
+                    <td>April 26, 2025</td>
+                    <td>redtube.com</td>
                     <td>Analysis Completed</td>
-                    <td><span class="tag tag-safe">Safe</span></td>
+                    <td><span class="tag tag-nsfw">NSFW</span></td>
                 </tr>
             </tbody>
         </table>
@@ -1058,7 +1058,7 @@
             console.log("Loading NSFW data from extension storage...");
             
             // Simulate refresh functionality
-            document.getElementById('nsfw-refresh-btn').addEventListener('click', function() {
+            document.getElementById('nsfw-sites-refresh-btn').addEventListener('click', function() {
                 this.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Refreshing...';
                 setTimeout(() => {
                     this.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
