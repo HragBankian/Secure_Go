@@ -48,6 +48,7 @@
                 <ul>
                     <li><a href="{{ url_for('index') }}"><i class="fas fa-home"></i> Home</a></li>
                     <li><a href="{{ url_for('dashboard') }}"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+                    <li id="nsfw-nav-item" style="display: none;"><a href="{{ url_for('dashboard') }}?source=extension"><i class="fas fa-shield-alt"></i> NSFW Protection</a></li>
                     <li>API Status: <span id="api-status" class="status-badge">Checking...</span></li>
                 </ul>
             </nav>
@@ -72,6 +73,7 @@
                     <ul>
                         <li><a href="{{ url_for('index') }}">Home</a></li>
                         <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                        <li id="nsfw-footer-link" style="display: none;"><a href="{{ url_for('dashboard') }}?source=extension">NSFW Protection</a></li>
                         <li><a href="#">Documentation</a></li>
                     </ul>
                 </div>
@@ -84,5 +86,20 @@
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block extra_js %}{% endblock %}
+
+    <script>
+        // Check if we're being accessed from the extension
+        document.addEventListener('DOMContentLoaded', function() {
+            const isFromExtension = new URLSearchParams(window.location.search).get('source') === 'extension';
+            const nsfwNavItem = document.getElementById('nsfw-nav-item');
+            const nsfwFooterLink = document.getElementById('nsfw-footer-link');
+            
+            // Show NSFW nav and footer items if accessed from extension
+            if (isFromExtension) {
+                if (nsfwNavItem) nsfwNavItem.style.display = 'inline-block';
+                if (nsfwFooterLink) nsfwFooterLink.style.display = 'list-item';
+            }
+        });
+    </script>
 </body>
 </html> 

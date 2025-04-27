@@ -798,6 +798,26 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Check if coming from extension
+        const isFromExtension = new URLSearchParams(window.location.search).get('source') === 'extension';
+
+        // NSFW sections to hide/show based on source
+        const nsfwSections = [
+            document.querySelector('.section-title'),  // NSFW Protection title
+            document.querySelectorAll('.stats-container')[1],  // NSFW stats container
+            document.querySelectorAll('.card.recent-detections')[1],  // NSFW Sites panel
+            document.querySelectorAll('.card.recent-detections')[2],  // NSFW Activity Log
+            document.querySelector('.card.settings-panel')  // NSFW Settings
+        ];
+
+        // Hide NSFW sections if not coming from extension
+        if (!isFromExtension) {
+            nsfwSections.forEach(section => {
+                if (section) section.style.display = 'none';
+            });
+        }
+
+        // Original dashboard code
         // Sample data for charts
         const setupCharts = () => {
             if (!window.Chart) {
@@ -951,7 +971,11 @@
             });
         });
         
-        // NSFW Data Handling
+        // NSFW Data Handling - only execute if coming from extension
+        if (isFromExtension) {
+            loadNsfwData();
+        }
+        
         function loadNsfwData() {
             // In a real application, this would fetch data from the backend
             // For now, we're using the placeholder data already in the HTML
@@ -1122,9 +1146,6 @@
                 }, 300);
             }, 3000);
         }
-        
-        // Initialize NSFW data
-        loadNsfwData();
     });
 </script>
 {% endblock %} 
