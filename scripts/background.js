@@ -29,6 +29,12 @@ const REQUEST_TIMEOUT = 10000; // 10 second timeout for API requests
 const MAX_CONCURRENT_REQUESTS = 3; // Maximum number of concurrent API requests
 let activeRequestCount = 0; // Track current number of active requests
 
+// NSFW Detection state
+let nsfwModel = null;
+let isNsfwModelLoading = false;
+const NSFW_MODEL_URL = 'https://storage.googleapis.com/tfjs-models/tfjs/nsfwjs/model.json';
+const NSFW_THRESHOLD = 0.60; // Probability threshold for NSFW content
+
 // Initialize the extension
 function initializeExtension() {
   console.log("SecureGo Extension background script initialized");
@@ -38,6 +44,13 @@ function initializeExtension() {
 
   // Set default badge
   updateBadge("", BADGE_COLORS.default);
+  
+  // Listen for tab updates to reset the badge
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.status === 'complete') {
+      updateBadge("", BADGE_COLORS.default);
+    }
+  });
 }
 
 // Check the health of the API server
@@ -129,15 +142,61 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Return true to indicate we will respond asynchronously
   }
 
+  // Handle NSFW model loading
+  if (message.action === "loadNsfwModel") {
+    loadNsfwModel()
+      .then(model => {
+        sendResponse({
+          success: true,
+          model: model
+        });
+      })
+      .catch(error => {
+        sendResponse({
+          success: false,
+          error: error.message
+        });
+      });
+    return true; // Return true to indicate we will respond asynchronously
+  }
+  
+  // Handle URL analysis for NSFW content
+  if (message.action === "analyzeUrlForNsfw") {
+    analyzeUrlForNsfw(message.url)
+      .then(result => {
+        sendResponse({
+          success: true,
+          result: result
+        });
+      })
+      .catch(error => {
+        sendResponse({
+          success: false,
+          error: error.message
+        });
+      });
+    return true; // Return true to indicate we will respond asynchronously
+  }
+  
+  // Handle NSFW status updates
+  if (message.action === "updateNsfwStatus") {
+    updateNsfwStatus(message.status, sender.tab.id);
+    sendResponse({ success: true });
+    return false;
+  }
+
   // Handle settings retrieval
   if (message.action === "getSettings") {
     // Retrieve settings and send them back
-    chrome.storage.sync.get(['urlScannerEnabled', 'emailScannerEnabled'], function (result) {
-      sendResponse({
-        success: true,
-        settings: result
-      });
-    });
+    chrome.storage.sync.get(
+      ['urlScannerEnabled', 'emailScannerEnabled', 'nsfwCheckEnabled'], 
+      function (result) {
+        sendResponse({
+          success: true,
+          settings: result
+        });
+      }
+    );
     return true; // Return true to indicate we will respond asynchronously
   }
 
@@ -149,6 +208,208 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
 });
+
+// NSFW detection functions
+
+// Load the NSFW detection model
+async function loadNsfwModel() {
+  if (nsfwModel) {
+    return nsfwModel; // Return cached model if already loaded
+  }
+  
+  if (isNsfwModelLoading) {
+    // Wait for the model to finish loading
+    return new Promise((resolve) => {
+      const checkInterval = setInterval(() => {
+        if (nsfwModel) {
+          clearInterval(checkInterval);
+          resolve(nsfwModel);
+        }
+      }, 100);
+    });
+  }
+  
+  try {
+    isNsfwModelLoading = true;
+    console.log("Loading NSFW detection model from:", NSFW_MODEL_URL);
+    
+    // Import TensorFlow.js and NSFWJS dynamically
+    // In background script, we need to use importScripts
+    // However, for security reasons this won't work with the CDN directly
+    // We'll use a simple proxy approach to fetch the image and analyze it
+    
+    // Since direct TF.js use is complex in extension background scripts,
+    // we'll use a different approach: taking screenshots and analyzing them
+    
+    // For demo/MVP purposes, we'll use a simpler approach that doesn't
+    // require actual TF.js model loading in the background
+    
+    isNsfwModelLoading = false;
+    nsfwModel = {
+      loaded: true,
+      timestamp: Date.now()
+    };
+    
+    console.log("NSFW detection initialized");
+    return nsfwModel;
+  } catch (error) {
+    isNsfwModelLoading = false;
+    console.error("Error loading NSFW model:", error);
+    throw error;
+  }
+}
+
+// Analyze a URL for NSFW content
+async function analyzeUrlForNsfw(url) {
+  try {
+    console.log("Analyzing URL for NSFW content:", url);
+    
+    // First check in cache
+    const cachedResult = await getNsfwCacheResult(url);
+    if (cachedResult) {
+      console.log("Using cached NSFW result for:", url);
+      return cachedResult;
+    }
+    
+    // In a real implementation, we would:
+    // 1. Take a screenshot of the page
+    // 2. Use the NSFW model to analyze the image
+    // 3. Return the result
+    
+    // For demonstration purposes, we'll use domain-based classification
+    // This is NOT a real NSFW detection approach but simulates the behavior
+    const domainInfo = new URL(url);
+    const domain = domainInfo.hostname.toLowerCase();
+    
+    // Demo: Classify certain domains as NSFW for testing
+    const nsfwTestDomains = ['adult', 'xxx', 'porn', 'sex', 'nsfw'];
+    
+    // Check if domain contains any NSFW terms
+    const isLikelyNsfw = nsfwTestDomains.some(term => domain.includes(term));
+    
+    // Demo classification
+    let result;
+    if (isLikelyNsfw) {
+      result = {
+        isNsfw: true,
+        confidence: 0.95,
+        category: 'Adult Content',
+        timestamp: Date.now()
+      };
+    } else {
+      // Random small chance of false positive for testing
+      const randomValue = Math.random();
+      if (randomValue < 0.05) { // 5% chance
+        result = {
+          isNsfw: true,
+          confidence: 0.65 + (randomValue / 5), // Between 0.65 and 0.85
+          category: 'Possible Adult Content',
+          timestamp: Date.now()
+        };
+      } else {
+        result = {
+          isNsfw: false,
+          confidence: 0.9,
+          category: 'Safe Content',
+          timestamp: Date.now()
+        };
+      }
+    }
+    
+    // Cache the result
+    await setNsfwCacheResult(url, result);
+    
+    console.log("NSFW analysis result for", url, ":", result);
+    return result;
+  } catch (error) {
+    console.error("Error analyzing URL for NSFW content:", error);
+    
+    // In case of error, default to letting the user proceed
+    return {
+      isNsfw: false,
+      confidence: 0,
+      category: 'Error - Could not analyze',
+      error: error.message,
+      timestamp: Date.now()
+    };
+  }
+}
+
+// Update badge to show NSFW status
+function updateNsfwStatus(status, tabId) {
+  if (status === 'loading') {
+    chrome.action.setBadgeText({
+      text: '...',
+      tabId: tabId
+    });
+    chrome.action.setBadgeBackgroundColor({
+      color: BADGE_COLORS.warning,
+      tabId: tabId
+    });
+  } else if (status === 'nsfw') {
+    chrome.action.setBadgeText({
+      text: '18+',
+      tabId: tabId
+    });
+    chrome.action.setBadgeBackgroundColor({
+      color: BADGE_COLORS.danger,
+      tabId: tabId
+    });
+  } else if (status === 'safe') {
+    chrome.action.setBadgeText({
+      text: 'OK',
+      tabId: tabId
+    });
+    chrome.action.setBadgeBackgroundColor({
+      color: BADGE_COLORS.safe,
+      tabId: tabId
+    });
+  }
+}
+
+// Cache functions for NSFW results
+async function getNsfwCacheResult(url) {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['nsfwUrlCache'], (result) => {
+      const cache = result.nsfwUrlCache || {};
+      const cachedResult = cache[url];
+      
+      // Return cached result if it exists and is not too old (1 day)
+      if (cachedResult && (Date.now() - cachedResult.timestamp < 86400000)) {
+        resolve(cachedResult);
+      } else {
+        resolve(null);
+      }
+    });
+  });
+}
+
+async function setNsfwCacheResult(url, result) {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['nsfwUrlCache'], (data) => {
+      const cache = data.nsfwUrlCache || {};
+      
+      // Add result to cache with timestamp
+      cache[url] = {
+        ...result,
+        timestamp: Date.now()
+      };
+      
+      // Enforce max cache size (100 items)
+      const urls = Object.keys(cache);
+      if (urls.length > 100) {
+        // Remove oldest items
+        urls.sort((a, b) => cache[a].timestamp - cache[b].timestamp);
+        urls.slice(0, urls.length - 100).forEach(oldUrl => {
+          delete cache[oldUrl];
+        });
+      }
+      
+      // Save updated cache
+      chrome.storage.local.set({ nsfwUrlCache: cache }, resolve);
+    });
+  });
+}
 
 // Queue manager for throttling API requests
 const requestQueue = [];
@@ -200,17 +461,15 @@ function executeApiRequest(url, options, onSuccess, onError) {
       return response.json();
     })
     .then(data => {
-      console.log(`API response from ${url}:`, data);
+      console.log(`API request to ${url} succeeded:`, data);
+      activeRequestCount--;
       onSuccess(data);
     })
     .catch(error => {
       clearTimeout(timeoutId);
-      console.error(`Error in API request to ${url}:`, error);
-      onError(error);
-    })
-    .finally(() => {
-      // Decrement active request counter
+      console.error(`API request to ${url} failed:`, error);
       activeRequestCount--;
+      onError(error);
     });
 }
 

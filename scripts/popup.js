@@ -4,6 +4,7 @@
 document.addEventListener('DOMContentLoaded', function () {
   // Initialize UI elements
   const phishingToggle = document.getElementById('phishing-toggle');
+  const nsfwToggle = document.getElementById('nsfw-toggle');
   const refreshButton = document.getElementById('refresh-status');
   const openDashboardButton = document.getElementById('open-dashboard');
   const statusDot = document.getElementById('status-dot');
@@ -13,6 +14,14 @@ document.addEventListener('DOMContentLoaded', function () {
   const emailsScanned = document.getElementById('emails-scanned');
   const phishingDetected = document.getElementById('phishing-detected');
   const detectionRate = document.getElementById('detection-rate');
+  
+  // NSFW statistics elements
+  const sitesAnalyzed = document.getElementById('sites-analyzed');
+  const nsfwDetected = document.getElementById('nsfw-detected');
+  const nsfwRecentList = document.getElementById('nsfw-recent-list');
+  const nsfwDetectionRateElem = document.getElementById('nsfw-detection-rate');
+  const nsfwBlockedCount = document.getElementById('nsfw-blocked-count');
+  const nsfwDetailsLink = document.getElementById('nsfw-details-link');
 
   // API configuration
   const API_CONFIG = {
@@ -31,6 +40,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Load statistics
   loadStatistics();
+  
+  // Load NSFW statistics
+  loadNsfwStatistics();
 
   // Event listeners
   phishingToggle.addEventListener('change', function () {
@@ -39,21 +51,38 @@ document.addEventListener('DOMContentLoaded', function () {
       console.log('Phishing detection setting saved:', phishingToggle.checked);
     });
   });
+  
+  nsfwToggle.addEventListener('change', function () {
+    // Save setting to storage
+    chrome.storage.sync.set({ 'nsfwCheckEnabled': this.checked }, function () {
+      console.log('NSFW detection setting saved:', nsfwToggle.checked);
+    });
+  });
 
   refreshButton.addEventListener('click', function () {
     checkApiStatus();
+    loadNsfwStatistics(); // Refresh NSFW stats too
   });
 
   openDashboardButton.addEventListener('click', function () {
     // Open the dashboard in a new tab
     chrome.tabs.create({ url: `${API_CONFIG.baseUrl}${API_CONFIG.endpoints.dashboard}` });
   });
+  
+  // Add dashboard link for NSFW details if available
+  if (nsfwDetailsLink) {
+    nsfwDetailsLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      chrome.tabs.create({ url: chrome.runtime.getURL("html/nsfw-dashboard.html") });
+    });
+  }
 
   // Functions
   function loadSettings() {
-    chrome.storage.sync.get(['phishingEnabled'], function (result) {
+    chrome.storage.sync.get(['phishingEnabled', 'nsfwCheckEnabled'], function (result) {
       // Default to enabled if not set
       phishingToggle.checked = result.phishingEnabled !== false;
+      nsfwToggle.checked = result.nsfwCheckEnabled !== false;
     });
   }
 
@@ -128,5 +157,118 @@ document.addEventListener('DOMContentLoaded', function () {
       .catch(error => {
         console.log('Could not fetch fresh stats:', error);
       });
+  }
+  
+  function loadNsfwStatistics() {
+    // Load NSFW stats from storage
+    chrome.storage.local.get(['nsfwStats', 'nsfwUrlCache', 'nsfwSiteList', 'nsfwUserActions'], function (result) {
+      let totalAnalyzed = 0;
+      let totalNsfw = 0;
+      let blockedCount = 0;
+      
+      // If we have dedicated stats
+      if (result.nsfwStats) {
+        totalAnalyzed = result.nsfwStats.totalAnalyzed || 0;
+        totalNsfw = result.nsfwStats.totalNsfw || 0;
+      } 
+      // Otherwise compute from cache
+      else if (result.nsfwUrlCache) {
+        const cache = result.nsfwUrlCache;
+        totalAnalyzed = Object.keys(cache).length;
+        
+        // Count NSFW entries
+        for (const url in cache) {
+          if (cache[url].isNsfw) {
+            totalNsfw++;
+          }
+        }
+      }
+      
+      // Update basic stats UI
+      sitesAnalyzed.textContent = totalAnalyzed;
+      nsfwDetected.textContent = totalNsfw;
+      
+      // Calculate and update detection rate if element exists
+      if (nsfwDetectionRateElem && totalAnalyzed > 0) {
+        const rate = ((totalNsfw / totalAnalyzed) * 100).toFixed(1);
+        nsfwDetectionRateElem.textContent = `${rate}%`;
+      }
+      
+      // Count warnings shown vs proceeded actions
+      if (result.nsfwUserActions) {
+        const warningShownCount = result.nsfwUserActions.filter(action => action.action === 'warning_shown').length;
+        const proceedCount = result.nsfwUserActions.filter(action => action.action === 'proceed').length;
+        
+        // Calculate how many warnings were effective (warning shown but didn't proceed)
+        blockedCount = warningShownCount - proceedCount;
+        
+        // Update UI if element exists
+        if (nsfwBlockedCount) {
+          nsfwBlockedCount.textContent = blockedCount;
+        }
+      }
+      
+      // Update recent NSFW sites list if element exists
+      if (nsfwRecentList && result.nsfwSiteList) {
+        updateRecentNsfwSites(result.nsfwSiteList);
+      }
+      
+      // Save computed stats for consistency
+      chrome.storage.local.set({
+        'nsfwStats': {
+          totalAnalyzed: totalAnalyzed,
+          totalNsfw: totalNsfw,
+          blockedCount: blockedCount,
+          detectionRate: totalAnalyzed > 0 ? (totalNsfw / totalAnalyzed) : 0,
+          lastUpdated: Date.now()
+        }
+      });
+    });
+  }
+  
+  // Update recent NSFW sites list
+  function updateRecentNsfwSites(siteList) {
+    // Get only NSFW sites and limit to 5 most recent
+    const recentNsfwSites = siteList
+      .filter(site => site.isNsfw)
+      .slice(0, 5);
+      
+    // Clear current list
+    nsfwRecentList.innerHTML = '';
+    
+    if (recentNsfwSites.length === 0) {
+      // Show message if no NSFW sites found
+      const emptyItem = document.createElement('li');
+      emptyItem.textContent = 'No NSFW sites detected yet';
+      emptyItem.className = 'nsfw-empty-list';
+      nsfwRecentList.appendChild(emptyItem);
+      return;
+    }
+    
+    // Add each site to the list
+    recentNsfwSites.forEach(site => {
+      const listItem = document.createElement('li');
+      listItem.className = 'nsfw-list-item';
+      
+      // Create domain text
+      const domainSpan = document.createElement('span');
+      domainSpan.className = 'nsfw-domain';
+      domainSpan.textContent = site.domain;
+      
+      // Create date text
+      const dateSpan = document.createElement('span');
+      dateSpan.className = 'nsfw-date';
+      dateSpan.textContent = site.nsfwDetectedOn || site.lastVisit;
+      
+      // Add to list item
+      listItem.appendChild(domainSpan);
+      listItem.appendChild(dateSpan);
+      
+      // Add tooltip
+      listItem.title = `Detected: ${site.nsfwDetectedOn || 'Unknown'}\nVisits: ${site.visits}`;
+      
+      // Add to list
+      nsfwRecentList.appendChild(listItem);
+    });
   }
 }); 
