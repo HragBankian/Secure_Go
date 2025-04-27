@@ -2,7 +2,7 @@
 // This script examines links on web pages and highlights potentially malicious URLs
 
 // Disable the URL scanner initialization
-const URL_SCANNER_ENABLED = false;
+const URL_SCANNER_ENABLED = true;
 
 // Domains to exclude from URL scanning
 const EXCLUDED_DOMAINS = [
