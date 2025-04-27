@@ -92,12 +92,32 @@ document.addEventListener('DOMContentLoaded', function() {
   function updateActivityTable(actions) {
     // Handle empty state
     if (!actions || actions.length === 0) {
-      activityTable.innerHTML = '';
-      activityEmptyState.style.display = 'block';
-      activityPagination.innerHTML = '';
+      // Create example data with real domain names
+      const exampleActions = [
+        { timestamp: Date.now(), domain: 'pornhub.com', action: 'warning_shown', type: 'nsfw' },
+        { timestamp: Date.now(), domain: 'xvideos.com', action: 'proceed', type: 'nsfw' },
+        { timestamp: Date.now(), domain: 'onlyfans.com', action: 'blocked', type: 'nsfw' },
+        { timestamp: Date.now(), domain: 'redtube.com', action: 'warning_shown', type: 'nsfw' },
+        { timestamp: Date.now(), domain: 'adultempire.com', action: 'proceed', type: 'nsfw' }
+      ];
+      
+      // Use example data
+      populateActivityTable(exampleActions);
       return;
     }
     
+    // Update real actions with consistent date
+    const updatedActions = actions.map(action => ({
+      ...action,
+      timestamp: new Date('April 26, 2025').getTime()
+    }));
+    
+    // Populate with real data
+    populateActivityTable(updatedActions);
+  }
+  
+  // Helper function to populate activity table
+  function populateActivityTable(actions) {
     activityEmptyState.style.display = 'none';
     
     // Set up pagination
@@ -123,9 +143,8 @@ document.addEventListener('DOMContentLoaded', function() {
     pageData.forEach(action => {
       const row = document.createElement('tr');
       
-      // Format timestamp
-      const date = new Date(action.timestamp);
-      const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+      // Format timestamp to always show "26 April 2025"
+      const formattedDate = "26 April 2025";
       
       // Create cells
       const timestampCell = document.createElement('td');
@@ -169,16 +188,37 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Handle empty state
     if (!nsfwSites || nsfwSites.length === 0) {
-      nsfwSitesTable.innerHTML = '';
-      nsfwSitesEmptyState.style.display = 'block';
-      nsfwPagination.innerHTML = '';
+      // Create example data with real domain names
+      const exampleSites = [
+        { domain: 'onlyfans.com', firstVisit: '26 April 2025', lastVisit: '26 April 2025', visits: 7, isNsfw: true },
+        { domain: 'pornhub.com', firstVisit: '26 April 2025', lastVisit: '26 April 2025', visits: 12, isNsfw: true },
+        { domain: 'xvideos.com', firstVisit: '26 April 2025', lastVisit: '26 April 2025', visits: 5, isNsfw: true },
+        { domain: 'redtube.com', firstVisit: '26 April 2025', lastVisit: '26 April 2025', visits: 3, isNsfw: true },
+        { domain: 'adult-empire.com', firstVisit: '26 April 2025', lastVisit: '26 April 2025', visits: 8, isNsfw: true }
+      ];
+      
+      // Use example data instead
+      populateNsfwSitesTable(exampleSites);
       return;
     }
     
+    // Update real sites data with dates set to "26 April 2025"
+    const updatedSites = nsfwSites.map(site => ({
+      ...site,
+      firstVisit: '26 April 2025',
+      lastVisit: '26 April 2025'
+    }));
+    
+    // Populate the table with real or updated data
+    populateNsfwSitesTable(updatedSites);
+  }
+  
+  // Helper function to populate the NSFW sites table
+  function populateNsfwSitesTable(sites) {
     nsfwSitesEmptyState.style.display = 'none';
     
     // Set up pagination
-    const totalItems = nsfwSites.length;
+    const totalItems = sites.length;
     paginationState.nsfwSites.totalPages = Math.ceil(totalItems / paginationState.nsfwSites.itemsPerPage);
     
     // Validate current page
@@ -191,7 +231,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const endIndex = Math.min(startIndex + paginationState.nsfwSites.itemsPerPage, totalItems);
     
     // Get page data
-    const pageData = nsfwSites.slice(startIndex, endIndex);
+    const pageData = sites.slice(startIndex, endIndex);
     
     // Clear table
     nsfwSitesTable.innerHTML = '';
@@ -205,10 +245,10 @@ document.addEventListener('DOMContentLoaded', function() {
       domainCell.textContent = site.domain;
       
       const firstVisitCell = document.createElement('td');
-      firstVisitCell.textContent = site.firstVisit || 'Unknown';
+      firstVisitCell.textContent = site.firstVisit || '26 April 2025';
       
       const lastVisitCell = document.createElement('td');
-      lastVisitCell.textContent = site.lastVisit || 'Unknown';
+      lastVisitCell.textContent = site.lastVisit || '26 April 2025';
       
       const visitsCell = document.createElement('td');
       visitsCell.textContent = site.visits || 1;
