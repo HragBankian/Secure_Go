@@ -404,6 +404,66 @@
     .add-domain-form input {
         flex-grow: 1;
     }
+    
+    /* Print Styles */
+    @media print {
+        body {
+            background-color: white;
+            font-size: 12pt;
+        }
+        
+        .dashboard-actions, 
+        .chart-actions,
+        .btn,
+        .toggle-switch,
+        .settings-panel,
+        .trusted-domains-panel,
+        .card.settings-panel {
+            display: none !important;
+        }
+        
+        .container, 
+        .dashboard-content, 
+        .card {
+            box-shadow: none !important;
+            border: 1px solid #eee !important;
+        }
+        
+        .stat-card {
+            break-inside: avoid;
+        }
+        
+        .dashboard-header {
+            border-bottom: 1px solid #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+        }
+        
+        /* Ensure each main section starts on a new page */
+        .section-title {
+            page-break-before: always;
+            margin-top: 20px;
+        }
+        
+        /* First section shouldn't have page break */
+        .section-title:first-of-type {
+            page-break-before: avoid;
+        }
+        
+        /* Footer for the printed page */
+        @page {
+            margin: 0.5in;
+        }
+        
+        /* Add a printed timestamp */
+        .dashboard-header:after {
+            content: "Report generated: " attr(data-print-date);
+            display: block;
+            font-size: 10pt;
+            color: #666;
+            margin-top: 5px;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -960,7 +1020,13 @@
         });
         
         document.getElementById('export-btn').addEventListener('click', function() {
-            alert('Report would be exported here.');
+            // Set current date for print timestamp
+            const now = new Date();
+            const formattedDate = now.toLocaleString();
+            document.querySelector('.dashboard-header').setAttribute('data-print-date', formattedDate);
+            
+            // Open the browser's print dialog
+            window.print();
         });
         
         // Period selection for the first chart
