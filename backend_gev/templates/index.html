@@ -1,30 +1,181 @@
 {% extends "base.html" %}
 
-{% block title %}Home - Phishing Detection API{% endblock %}
+{% block title %}SecureGo - Advanced Email Security{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        color: white;
+        padding: 3rem 0;
+        margin-bottom: 2rem;
+        border-radius: var(--border-radius);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .hero-content {
+        max-width: 600px;
+        position: relative;
+        z-index: 2;
+        padding-left: 3rem;
+    }
+    
+    .hero h1 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .hero p {
+        font-size: 1.2rem;
+        margin-bottom: 1.5rem;
+        opacity: 0.9;
+    }
+    
+    .hero-cta {
+        display: inline-block;
+        background-color: white;
+        color: var(--primary);
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--border-radius);
+        text-decoration: none;
+        font-weight: bold;
+        transition: var(--transition);
+    }
+    
+    .hero-cta:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .hero:after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 40%;
+        height: 100%;
+        background: url("{{ url_for('static', filename='images/security-bg.png') }}") no-repeat;
+        background-size: cover;
+        background-position: center;
+        opacity: 0.15;
+        z-index: 1;
+    }
+    
+    .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .feature-card {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        box-shadow: var(--box-shadow);
+        transition: var(--transition);
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+    
+    .feature-icon {
+        font-size: 2.5rem;
+        color: var(--accent);
+        margin-bottom: 1rem;
+    }
+    
+    .feature-card h3 {
+        color: var(--primary);
+        margin-bottom: 0.75rem;
+    }
+    
+    .checker-section {
+        margin-top: 2rem;
+        background: linear-gradient(to right, rgba(52, 152, 219, 0.05), rgba(44, 62, 80, 0.05));
+        border-radius: var(--border-radius);
+        padding: 2rem;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h2>Phishing Email Detector</h2>
-    <p>Use this tool to check if an email is legitimate (ham) or phishing (spam).</p>
-    
-    <form id="email-check-form">
-        <div class="form-group">
-            <label for="email-text">Email Content</label>
-            <textarea id="email-text" name="email" placeholder="Paste email content here..."></textarea>
-        </div>
-        <button type="submit">Check Email</button>
-    </form>
-    
-    <div id="result" class="result" style="display: none;"></div>
-</div>
+<section class="hero">
+    <div class="hero-content">
+        <h1>Welcome to SecureGo</h1>
+        <p>Advanced AI-powered email security solution that detects and blocks phishing threats before they reach your inbox.</p>
+        <a href="#email-checker" class="hero-cta">Try It Now <i class="fas fa-arrow-right"></i></a>
+    </div>
+</section>
 
-<div class="card">
-    <h2>API Information</h2>
-    <p>This is a machine learning-powered API for detecting phishing emails.</p>
-    <p>To use the API programmatically, send a POST request to <code>/AI</code> with a JSON payload containing an email key.</p>
-    <pre>{
+<section class="features">
+    <div class="feature-card">
+        <div class="feature-icon">
+            <i class="fas fa-shield-alt"></i>
+        </div>
+        <h3>Advanced Protection</h3>
+        <p>Our AI-powered system analyzes email content to detect sophisticated phishing attempts that traditional filters miss.</p>
+    </div>
+    
+    <div class="feature-card">
+        <div class="feature-icon">
+            <i class="fas fa-chart-line"></i>
+        </div>
+        <h3>Real-time Analytics</h3>
+        <p>Monitor threats with our comprehensive dashboard showing detection patterns and security insights.</p>
+    </div>
+    
+    <div class="feature-card">
+        <div class="feature-icon">
+            <i class="fas fa-cogs"></i>
+        </div>
+        <h3>Easy Integration</h3>
+        <p>Seamlessly integrate with your existing email systems through our simple API.</p>
+    </div>
+</section>
+
+<section id="email-checker" class="checker-section">
+    <div class="card">
+        <h2>Email Security Checker</h2>
+        <p>Paste the content of a suspicious email below to check if it's legitimate or potentially dangerous.</p>
+        
+        <form id="email-check-form">
+            <div class="form-group">
+                <label for="email-text">Email Content</label>
+                <textarea id="email-text" name="email" placeholder="Paste email content here..."></textarea>
+            </div>
+            <button type="submit">Analyze Email <i class="fas fa-search"></i></button>
+        </form>
+        
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+</section>
+
+<section class="api-info">
+    <div class="card">
+        <h2>SecureGo API</h2>
+        <p>Integrate our powerful phishing detection directly into your applications with our simple API.</p>
+        <pre>{
     "email": "Your email content here"
 }</pre>
-    <p>For more information, check out the <a href="https://github.com/yourusername/phishing-detection-api" target="_blank">GitHub repository</a>.</p>
-</div>
+        <p>For detailed documentation and implementation guides, check out our <a href="#" target="_blank">API Documentation</a>.</p>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            document.querySelector(this.getAttribute('href')).scrollIntoView({
+                behavior: 'smooth'
+            });
+        });
+    });
+</script>
 {% endblock %} 

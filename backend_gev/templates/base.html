@@ -3,7 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Phishing Detection API{% endblock %}</title>
+    <meta name="description" content="SecureGo - Advanced Email Security Solution powered by AI">
+    <meta name="keywords" content="email security, phishing protection, email threat detection, AI security">
+    <meta name="author" content="SecureGo">
+    <meta property="og:title" content="SecureGo - Email Security">
+    <meta property="og:description" content="Advanced AI-powered email security solution">
+    <meta property="og:image" content="{{ url_for('static', filename='images/logo.png') }}">
+    <meta property="og:type" content="website">
+    <link rel="icon" href="{{ url_for('static', filename='images/logo.png') }}">
+    <title>{% block title %}SecureGo - Email Security{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block extra_css %}{% endblock %}
     <style>
@@ -31,11 +40,14 @@
 <body>
     <header>
         <div class="container">
-            <h1>Phishing Email Detection</h1>
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="SecureGo Logo" class="logo">
+                <h1>SecureGo</h1>
+            </div>
             <nav>
                 <ul>
-                    <li><a href="{{ url_for('index') }}">Home</a></li>
-                    <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li><a href="{{ url_for('index') }}"><i class="fas fa-home"></i> Home</a></li>
+                    <li><a href="{{ url_for('dashboard') }}"><i class="fas fa-chart-line"></i> Dashboard</a></li>
                     <li>API Status: <span id="api-status" class="status-badge">Checking...</span></li>
                 </ul>
             </nav>
@@ -50,7 +62,23 @@
 
     <footer>
         <div class="container">
-            <p>&copy; 2024 Phishing Detection API. All rights reserved.</p>
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="SecureGo Logo" class="logo">
+                    <p>SecureGo - Keeping Your Emails Safe</p>
+                </div>
+                <div class="footer-links">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="{{ url_for('index') }}">Home</a></li>
+                        <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                        <li><a href="#">Documentation</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 SecureGo. All rights reserved.</p>
+            </div>
         </div>
     </footer>
 

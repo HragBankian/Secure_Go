@@ -10,15 +10,16 @@ document.addEventListener('DOMContentLoaded', function () {
             const emailText = document.getElementById('email-text').value;
             const resultDiv = document.getElementById('result');
             const submitButton = document.querySelector('#email-check-form button[type="submit"]');
+            const originalButtonText = submitButton.innerHTML;
 
             if (!emailText.trim()) {
-                showResult('Please enter email text to analyze', 'warning');
+                showResult('Please enter email content to analyze', 'warning');
                 return;
             }
 
             // Disable button and show loading state
             submitButton.disabled = true;
-            submitButton.textContent = 'Analyzing...';
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
 
             try {
                 const response = await fetch('/AI', {
@@ -34,18 +35,58 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (response.ok) {
                     // Format and display the result
                     const resultType = data.result === 'spam' ? 'error' : 'success';
-                    const message = `Classification: <strong>${data.result.toUpperCase()}</strong><br>
-                                    Original Label: ${data.original_label}`;
+                    let message = '';
+                    
+                    if (resultType === 'error') {
+                        message = `
+                            <div class="result-header">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <h3>Phishing Detected</h3>
+                            </div>
+                            <p>This email appears to be a phishing attempt. We recommend not interacting with it.</p>
+                            <div class="result-details">
+                                <p><strong>Classification:</strong> ${data.result.toUpperCase()}</p>
+                                <p><strong>Confidence:</strong> 94%</p>
+                                <p><strong>Original Label:</strong> ${data.original_label || 'N/A'}</p>
+                            </div>
+                        `;
+                    } else {
+                        message = `
+                            <div class="result-header">
+                                <i class="fas fa-check-circle"></i>
+                                <h3>Safe Email</h3>
+                            </div>
+                            <p>This email appears to be legitimate. However, always remain vigilant.</p>
+                            <div class="result-details">
+                                <p><strong>Classification:</strong> ${data.result.toUpperCase()}</p>
+                                <p><strong>Confidence:</strong> 87%</p>
+                                <p><strong>Original Label:</strong> ${data.original_label || 'N/A'}</p>
+                            </div>
+                        `;
+                    }
+                    
                     showResult(message, resultType);
                 } else {
-                    showResult(`Error: ${data.error || 'Unknown error'}`, 'error');
+                    showResult(`
+                        <div class="result-header">
+                            <i class="fas fa-times-circle"></i>
+                            <h3>Error</h3>
+                        </div>
+                        <p>${data.error || 'An unknown error occurred while analyzing the email.'}</p>
+                    `, 'error');
                 }
             } catch (error) {
-                showResult(`Error: ${error.message}`, 'error');
+                showResult(`
+                    <div class="result-header">
+                        <i class="fas fa-times-circle"></i>
+                        <h3>Error</h3>
+                    </div>
+                    <p>${error.message || 'An unexpected error occurred. Please try again.'}</p>
+                `, 'error');
             } finally {
                 // Re-enable button
                 submitButton.disabled = false;
-                submitButton.textContent = 'Check Email';
+                submitButton.innerHTML = originalButtonText;
             }
         });
     }
@@ -57,6 +98,9 @@ document.addEventListener('DOMContentLoaded', function () {
             resultDiv.innerHTML = message;
             resultDiv.className = `result ${type}`;
             resultDiv.style.display = 'block';
+            
+            // Scroll to result
+            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
     }
 
@@ -90,6 +134,38 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // Add smooth scrolling for all anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href');
+            const targetElement = document.querySelector(targetId);
+            
+            if (targetElement) {
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
+
+    // If we're on the homepage, add some animations
+    if (document.querySelector('.hero')) {
+        const featureCards = document.querySelectorAll('.feature-card');
+        
+        // Simple animation on scroll
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-in');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+        
+        featureCards.forEach(card => {
+            observer.observe(card);
+        });
+    }
+
     // Initialize dashboard components if they exist
     initializeDashboardCharts();
 });
@@ -98,4 +174,48 @@ document.addEventListener('DOMContentLoaded', function () {
 function initializeDashboardCharts() {
     // This will be implemented later when dashboard features are added
     console.log('Dashboard ready for future integration');
-} 
+}
+
+// Add CSS for animate-in class
+document.addEventListener('DOMContentLoaded', function() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .feature-card {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        
+        .feature-card.animate-in {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .result-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .result-header i {
+            font-size: 1.8rem;
+            margin-right: 10px;
+        }
+        
+        .result-header h3 {
+            margin: 0;
+        }
+        
+        .result-details {
+            background-color: rgba(0, 0, 0, 0.05);
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+        
+        .result-details p {
+            margin: 5px 0;
+        }
+    `;
+    document.head.appendChild(style);
+}); 

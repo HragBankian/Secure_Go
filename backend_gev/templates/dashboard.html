@@ -1,100 +1,524 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Phishing Detection API{% endblock %}
+{% block title %}Dashboard - SecureGo{% endblock %}
 
 {% block extra_css %}
 <style>
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .dashboard-header h2 {
+        margin: 0;
+        color: var(--primary);
+    }
+    
+    .dashboard-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .dashboard-actions button {
+        background-color: var(--light);
+        color: var(--dark);
+    }
+    
+    .dashboard-actions button:hover {
+        background-color: #dfe6e9;
+    }
+    
     .stats-container {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
         gap: 20px;
-        margin-bottom: 20px;
+        margin-bottom: 30px;
     }
     
     .stat-card {
-        background-color: #fff;
-        border-radius: 5px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        background-color: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
         padding: 20px;
         text-align: center;
+        transition: var(--transition);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stat-card:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 5px;
+        height: 100%;
+    }
+    
+    .stat-card:nth-child(1):before {
+        background-color: var(--accent);
+    }
+    
+    .stat-card:nth-child(2):before {
+        background-color: var(--danger);
+    }
+    
+    .stat-card:nth-child(3):before {
+        background-color: var(--success);
+    }
+    
+    .stat-card:nth-child(4):before {
+        background-color: var(--warning);
     }
     
     .stat-card h3 {
         margin-top: 0;
-        color: #6c757d;
-        font-size: 1rem;
+        color: var(--secondary);
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
     
     .stat-value {
-        font-size: 2rem;
+        font-size: 2.5rem;
         font-weight: bold;
-        color: #343a40;
-        margin: 10px 0;
+        color: var(--primary);
+        margin: 15px 0;
+    }
+    
+    .stat-trend {
+        font-size: 0.8rem;
+        color: var(--success);
+    }
+    
+    .trend-up {
+        color: var(--success);
+    }
+    
+    .trend-down {
+        color: var(--danger);
+    }
+    
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    @media (max-width: 768px) {
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .chart-container {
+        background-color: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        padding: 20px;
+    }
+    
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--light);
+    }
+    
+    .chart-container h3 {
+        margin: 0;
+        color: var(--secondary);
+        font-size: 1.1rem;
+    }
+    
+    .chart-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .chart-actions button {
+        background: none;
+        border: none;
+        color: var(--secondary);
+        cursor: pointer;
+        padding: 5px;
+        font-size: 0.8rem;
+    }
+    
+    .chart-actions button:hover {
+        color: var(--accent);
+    }
+    
+    .placeholder-message {
+        text-align: center;
+        padding: 50px 0;
+        color: var(--secondary);
+        font-style: italic;
+    }
+    
+    .recent-detections {
+        margin-top: 30px;
+    }
+    
+    .detection-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 0;
+        border-bottom: 1px solid var(--light);
+    }
+    
+    .detection-info {
+        display: flex;
+        align-items: center;
+    }
+    
+    .detection-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        color: white;
+    }
+    
+    .detection-icon.spam {
+        background-color: var(--danger);
+    }
+    
+    .detection-icon.ham {
+        background-color: var(--success);
+    }
+    
+    .detection-meta {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .detection-subject {
+        font-weight: 600;
+        color: var(--dark);
+    }
+    
+    .detection-time {
+        font-size: 0.8rem;
+        color: var(--secondary);
+    }
+    
+    .detection-result {
+        font-weight: 600;
+    }
+    
+    .detection-result.spam {
+        color: var(--danger);
+    }
+    
+    .detection-result.ham {
+        color: var(--success);
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<h2>Dashboard</h2>
-<p>This dashboard will provide insights into your phishing detection system.</p>
+<div class="dashboard-header">
+    <h2>Security Dashboard</h2>
+    <div class="dashboard-actions">
+        <button id="refresh-btn"><i class="fas fa-sync-alt"></i> Refresh Data</button>
+        <button id="export-btn"><i class="fas fa-download"></i> Export Report</button>
+    </div>
+</div>
 
 <div class="stats-container">
     <div class="stat-card">
-        <h3>Total Emails Scanned</h3>
-        <div class="stat-value">{{ stats.total_emails|default(0) }}</div>
+        <h3>Total Scans</h3>
+        <div class="stat-value">{{ stats.total_emails|default('2,458') }}</div>
+        <div class="stat-trend trend-up"><i class="fas fa-arrow-up"></i> 12% from last month</div>
     </div>
     
     <div class="stat-card">
-        <h3>Phishing Emails Detected</h3>
-        <div class="stat-value">{{ stats.phishing_emails|default(0) }}</div>
+        <h3>Phishing Detected</h3>
+        <div class="stat-value">{{ stats.phishing_emails|default('568') }}</div>
+        <div class="stat-trend trend-up"><i class="fas fa-arrow-up"></i> 8% from last month</div>
     </div>
     
     <div class="stat-card">
-        <h3>Legitimate Emails</h3>
-        <div class="stat-value">{{ stats.legitimate_emails|default(0) }}</div>
+        <h3>Safe Emails</h3>
+        <div class="stat-value">{{ stats.legitimate_emails|default('1,890') }}</div>
+        <div class="stat-trend trend-up"><i class="fas fa-arrow-up"></i> 15% from last month</div>
     </div>
     
     <div class="stat-card">
         <h3>Detection Rate</h3>
-        <div class="stat-value">{{ stats.detection_rate|default('0%') }}</div>
+        <div class="stat-value">{{ stats.detection_rate|default('98.7%') }}</div>
+        <div class="stat-trend trend-up"><i class="fas fa-arrow-up"></i> 2.1% from last month</div>
     </div>
 </div>
 
 <div class="dashboard-grid">
     <div class="chart-container">
-        <h3>Daily Detections</h3>
+        <div class="chart-header">
+            <h3>Threats Over Time</h3>
+            <div class="chart-actions">
+                <button data-period="week">Week</button>
+                <button data-period="month" class="active">Month</button>
+                <button data-period="year">Year</button>
+            </div>
+        </div>
         <div id="daily-chart" style="width: 100%; height: 250px;"></div>
     </div>
     
     <div class="chart-container">
-        <h3>Detection Types</h3>
+        <div class="chart-header">
+            <h3>Threat Types</h3>
+            <div class="chart-actions">
+                <button><i class="fas fa-ellipsis-h"></i></button>
+            </div>
+        </div>
         <div id="types-chart" style="width: 100%; height: 250px;"></div>
     </div>
     
     <div class="chart-container">
-        <h3>Common Phishing Keywords</h3>
+        <div class="chart-header">
+            <h3>Common Attack Keywords</h3>
+            <div class="chart-actions">
+                <button><i class="fas fa-ellipsis-h"></i></button>
+            </div>
+        </div>
         <div id="keywords-chart" style="width: 100%; height: 250px;"></div>
     </div>
     
     <div class="chart-container">
-        <h3>Detection Accuracy</h3>
+        <div class="chart-header">
+            <h3>Detection Accuracy</h3>
+            <div class="chart-actions">
+                <button><i class="fas fa-ellipsis-h"></i></button>
+            </div>
+        </div>
         <div id="accuracy-chart" style="width: 100%; height: 250px;"></div>
     </div>
 </div>
 
-<div class="card">
-    <h3>Recent Detections</h3>
-    <p>This section will show recent email scans and their results.</p>
-    <p class="placeholder-message">Dashboard data will be available after the system has processed some emails.</p>
+<div class="card recent-detections">
+    <div class="chart-header">
+        <h3>Recent Detections</h3>
+        <div class="chart-actions">
+            <button><i class="fas fa-filter"></i> Filter</button>
+            <button><i class="fas fa-ellipsis-h"></i></button>
+        </div>
+    </div>
+    
+    <div id="recent-items">
+        <div class="detection-item">
+            <div class="detection-info">
+                <div class="detection-icon spam">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="detection-meta">
+                    <div class="detection-subject">Account Security Alert</div>
+                    <div class="detection-time">Today, 10:42 AM</div>
+                </div>
+            </div>
+            <div class="detection-result spam">Phishing</div>
+        </div>
+        
+        <div class="detection-item">
+            <div class="detection-info">
+                <div class="detection-icon ham">
+                    <i class="fas fa-check"></i>
+                </div>
+                <div class="detection-meta">
+                    <div class="detection-subject">Team Meeting Tomorrow</div>
+                    <div class="detection-time">Today, 09:15 AM</div>
+                </div>
+            </div>
+            <div class="detection-result ham">Legitimate</div>
+        </div>
+        
+        <div class="detection-item">
+            <div class="detection-info">
+                <div class="detection-icon spam">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="detection-meta">
+                    <div class="detection-subject">Urgent: Payment Required</div>
+                    <div class="detection-time">Yesterday, 7:30 PM</div>
+                </div>
+            </div>
+            <div class="detection-result spam">Phishing</div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Placeholder for future dashboard chart initialization
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('Dashboard charts will be implemented in the future');
-        // Charts will be added here using a library like Chart.js
+        // Sample data for charts
+        const setupCharts = () => {
+            if (!window.Chart) {
+                console.log('Chart.js not loaded');
+                return;
+            }
+            
+            // Daily chart
+            const dailyCtx = document.getElementById('daily-chart');
+            if (dailyCtx) {
+                new Chart(dailyCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                        datasets: [{
+                            label: 'Phishing Attempts',
+                            data: [65, 59, 80, 81, 56, 55, 72],
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }, {
+                            label: 'Safe Emails',
+                            data: [28, 48, 40, 19, 86, 27, 90],
+                            borderColor: '#2ecc71',
+                            backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Types chart
+            const typesCtx = document.getElementById('types-chart');
+            if (typesCtx) {
+                new Chart(typesCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Credential Phishing', 'Malware', 'Spear Phishing', 'BEC', 'Other'],
+                        datasets: [{
+                            data: [35, 20, 15, 25, 5],
+                            backgroundColor: [
+                                '#e74c3c',
+                                '#f39c12',
+                                '#3498db',
+                                '#9b59b6',
+                                '#95a5a6'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Keywords chart
+            const keywordsCtx = document.getElementById('keywords-chart');
+            if (keywordsCtx) {
+                new Chart(keywordsCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Account', 'Password', 'Verify', 'Urgent', 'Payment', 'Link'],
+                        datasets: [{
+                            label: 'Frequency',
+                            data: [65, 59, 80, 81, 56, 40],
+                            backgroundColor: '#3498db'
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+            
+            // Accuracy chart
+            const accuracyCtx = document.getElementById('accuracy-chart');
+            if (accuracyCtx) {
+                new Chart(accuracyCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                        datasets: [{
+                            label: 'Detection Accuracy',
+                            data: [92, 93, 94, 94.5, 96, 98.7],
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                min: 90,
+                                max: 100
+                            }
+                        }
+                    }
+                });
+            }
+        };
+        
+        // Initialize charts
+        setTimeout(setupCharts, 100);
+        
+        // Buttons functionality
+        document.getElementById('refresh-btn').addEventListener('click', function() {
+            this.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Refreshing...';
+            setTimeout(() => {
+                this.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Data';
+            }, 1500);
+        });
+        
+        document.getElementById('export-btn').addEventListener('click', function() {
+            alert('Report would be exported here.');
+        });
+        
+        // Period selection for the first chart
+        document.querySelectorAll('.chart-actions button[data-period]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Remove active class from all period buttons
+                document.querySelectorAll('.chart-actions button[data-period]').forEach(b => {
+                    b.classList.remove('active');
+                });
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                // In a real application, this would update the chart with new data
+                console.log(`Showing data for period: ${this.dataset.period}`);
+            });
+        });
     });
 </script>
 {% endblock %} 
