@@ -156,6 +156,84 @@
     button:hover {
       background-color: #0b7dda;
     }
+    
+    .feature-section {
+      margin-top: 15px;
+      border-top: 1px solid #eaeaea;
+      padding-top: 15px;
+    }
+    
+    .feature-section h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 16px;
+      color: #333;
+    }
+    
+    .feature-description {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+    }
+    
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .section-header a {
+      font-size: 12px;
+      color: #2196F3;
+      text-decoration: none;
+    }
+    
+    .nsfw-list {
+      list-style-type: none;
+      padding: 0;
+      margin: 10px 0;
+      max-height: 120px;
+      overflow-y: auto;
+      border-top: 1px solid #eee;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .nsfw-list-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 12px;
+    }
+    
+    .nsfw-list-item:last-child {
+      border-bottom: none;
+    }
+    
+    .nsfw-domain {
+      font-weight: 500;
+      max-width: 75%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .nsfw-date {
+      color: #666;
+      font-size: 11px;
+    }
+    
+    .nsfw-empty-list {
+      text-align: center;
+      color: #666;
+      font-style: italic;
+      padding: 10px 0;
+    }
+    
+    .warning-stat {
+      color: #d32f2f;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -180,8 +258,50 @@
     </label>
   </div>
   
+  <div class="feature-section">
+    <div class="section-header">
+      <h3>NSFW Content Detection</h3>
+      <a href="#" id="nsfw-details-link">View Details</a>
+    </div>
+    
+    <div class="feature-toggle">
+      <div>
+        <span>Website Content Check</span>
+        <div class="feature-description">Check if websites are SFW/NSFW</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="nsfw-toggle" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    
+    <div class="stats" id="nsfw-stats">
+      <div class="stats-item">
+        <span class="stats-label">Sites Analyzed:</span>
+        <span id="sites-analyzed">0</span>
+      </div>
+      <div class="stats-item">
+        <span class="stats-label">NSFW Detected:</span>
+        <span id="nsfw-detected" class="warning-stat">0</span>
+      </div>
+      <div class="stats-item">
+        <span class="stats-label">Detection Rate:</span>
+        <span id="nsfw-detection-rate">0%</span>
+      </div>
+      <div class="stats-item">
+        <span class="stats-label">Warnings Blocked:</span>
+        <span id="nsfw-blocked-count">0</span>
+      </div>
+      
+      <h4>Recently Detected NSFW Sites</h4>
+      <ul class="nsfw-list" id="nsfw-recent-list">
+        <li class="nsfw-empty-list">No NSFW sites detected yet</li>
+      </ul>
+    </div>
+  </div>
+  
   <div class="stats">
-    <h3 style="margin-top: 0; margin-bottom: 10px;">Statistics</h3>
+    <h3 style="margin-top: 0; margin-bottom: 10px;">Email Statistics</h3>
     <div class="stats-item">
       <span class="stats-label">Emails Scanned:</span>
       <span id="emails-scanned">0</span>

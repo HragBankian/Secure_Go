@@ -31,9 +31,20 @@
       ],
       "js": [
         "scripts/email-content-script.js",
-        "scripts/url-scanner-content.js"
+        "scripts/url-scanner-content.js",
+        "scripts/nsfw-detector.js"
       ],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "html/nsfw-dashboard.html",
+        "scripts/nsfw-dashboard.js",
+        "icons/*"
+      ],
+      "matches": ["<all_urls>"]
     }
   ]
 }
