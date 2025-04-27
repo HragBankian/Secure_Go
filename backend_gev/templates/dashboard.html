@@ -229,6 +229,145 @@
     .detection-result.ham {
         color: var(--success);
     }
+    
+    /* NSFW Detection Styles */
+    .tag {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    
+    .tag-nsfw {
+        background-color: #ffebee;
+        color: #d32f2f;
+    }
+    
+    .tag-safe {
+        background-color: #e8f5e9;
+        color: #388e3c;
+    }
+    
+    .tag-warning {
+        background-color: #fff8e1;
+        color: #ffa000;
+    }
+    
+    .nsfw-sites-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .nsfw-sites-table th, 
+    .nsfw-sites-table td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid var(--light);
+    }
+    
+    .nsfw-sites-table th {
+        background-color: #f9f9f9;
+        font-weight: 600;
+        color: var(--dark);
+    }
+    
+    .nsfw-sites-table tr:hover {
+        background-color: #f5f5f5;
+    }
+    
+    /* Settings Panel Styles */
+    .settings-panel {
+        margin-top: 30px;
+    }
+    
+    .settings-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+        gap: 20px;
+    }
+    
+    .setting-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 0;
+        border-bottom: 1px solid var(--light);
+    }
+    
+    .setting-info {
+        max-width: 80%;
+    }
+    
+    .setting-title {
+        font-weight: 600;
+        color: var(--dark);
+        margin-bottom: 5px;
+    }
+    
+    .setting-description {
+        color: var(--secondary);
+        font-size: 0.9rem;
+    }
+    
+    /* Toggle Switch Styles */
+    .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 24px;
+    }
+    
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 24px;
+    }
+    
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+    
+    input:checked + .slider {
+        background-color: var(--accent);
+    }
+    
+    input:focus + .slider {
+        box-shadow: 0 0 1px var(--accent);
+    }
+    
+    input:checked + .slider:before {
+        transform: translateX(26px);
+    }
+    
+    .section-title {
+        color: var(--primary);
+        margin: 2rem 0 1rem;
+        font-size: 1.5rem;
+        font-weight: 600;
+        border-bottom: 2px solid var(--light);
+        padding-bottom: 0.5rem;
+    }
 </style>
 {% endblock %}
 
@@ -264,6 +403,34 @@
         <h3>Detection Rate</h3>
         <div class="stat-value">{{ stats.detection_rate|default('98.7%') }}</div>
         <div class="stat-trend trend-up"><i class="fas fa-arrow-up"></i> 2.1% from last month</div>
+    </div>
+</div>
+
+<!-- NSFW Protection Stats Row -->
+<h2 class="section-title">NSFW Protection</h2>
+<div class="stats-container">
+    <div class="stat-card">
+        <h3>Sites Analyzed</h3>
+        <div class="stat-value" id="nsfw-analyzed">834</div>
+        <div class="stat-trend trend-up"><i class="fas fa-arrow-up"></i> 15% from last month</div>
+    </div>
+    
+    <div class="stat-card">
+        <h3>NSFW Sites Detected</h3>
+        <div class="stat-value warning-value" id="nsfw-detected">68</div>
+        <div class="stat-trend trend-up"><i class="fas fa-arrow-up"></i> 5% from last month</div>
+    </div>
+    
+    <div class="stat-card">
+        <h3>NSFW Detection Rate</h3>
+        <div class="stat-value" id="nsfw-rate">8.2%</div>
+        <div class="stat-trend trend-down"><i class="fas fa-arrow-down"></i> 2% from last month</div>
+    </div>
+    
+    <div class="stat-card">
+        <h3>NSFW Warnings Blocked</h3>
+        <div class="stat-value success-value" id="nsfw-blocked">54</div>
+        <div class="stat-trend trend-up"><i class="fas fa-arrow-up"></i> 18% from last month</div>
     </div>
 </div>
 
@@ -358,6 +525,199 @@
                 </div>
             </div>
             <div class="detection-result spam">Phishing</div>
+        </div>
+    </div>
+</div>
+
+<!-- NSFW Sites Panel -->
+<div class="card recent-detections">
+    <div class="chart-header">
+        <h3>NSFW Sites Detected</h3>
+        <div class="chart-actions">
+            <button id="nsfw-refresh-btn"><i class="fas fa-sync-alt"></i> Refresh</button>
+            <button><i class="fas fa-filter"></i> Filter</button>
+        </div>
+    </div>
+    
+    <div id="nsfw-sites-container">
+        <table class="nsfw-sites-table">
+            <thead>
+                <tr>
+                    <th>Domain</th>
+                    <th>First Visit</th>
+                    <th>Last Visit</th>
+                    <th>Visits</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="nsfw-sites-tbody">
+                <tr>
+                    <td>example-nsfw-site1.com</td>
+                    <td>2024-05-02</td>
+                    <td>2024-05-12</td>
+                    <td>8</td>
+                    <td><span class="tag tag-nsfw">NSFW</span></td>
+                </tr>
+                <tr>
+                    <td>explicit-content-domain.net</td>
+                    <td>2024-05-05</td>
+                    <td>2024-05-10</td>
+                    <td>3</td>
+                    <td><span class="tag tag-nsfw">NSFW</span></td>
+                </tr>
+                <tr>
+                    <td>adult-site-example.org</td>
+                    <td>2024-04-28</td>
+                    <td>2024-05-08</td>
+                    <td>5</td>
+                    <td><span class="tag tag-nsfw">NSFW</span></td>
+                </tr>
+            </tbody>
+        </table>
+        <div id="nsfw-sites-empty" class="empty-state" style="display: none;">
+            <p>No NSFW sites detected yet.</p>
+        </div>
+        <div class="pagination" id="nsfw-pagination"></div>
+    </div>
+</div>
+
+<!-- NSFW Activity Log Panel -->
+<div class="card recent-detections">
+    <div class="chart-header">
+        <h3>NSFW Activity Log</h3>
+        <div class="chart-actions">
+            <button id="activity-refresh-btn"><i class="fas fa-sync-alt"></i> Refresh</button>
+            <button><i class="fas fa-filter"></i> Filter</button>
+        </div>
+    </div>
+    
+    <div id="activity-container">
+        <table class="nsfw-sites-table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Domain</th>
+                    <th>Action</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="activity-tbody">
+                <tr>
+                    <td>2024-05-12 14:23:45</td>
+                    <td>example-nsfw-site1.com</td>
+                    <td>Warning Displayed</td>
+                    <td><span class="tag tag-warning">Warning</span></td>
+                </tr>
+                <tr>
+                    <td>2024-05-12 13:10:22</td>
+                    <td>explicit-content-domain.net</td>
+                    <td>Access Blocked</td>
+                    <td><span class="tag tag-nsfw">Blocked</span></td>
+                </tr>
+                <tr>
+                    <td>2024-05-11 18:45:30</td>
+                    <td>adult-site-example.org</td>
+                    <td>User Proceeded</td>
+                    <td><span class="tag tag-warning">Allowed</span></td>
+                </tr>
+                <tr>
+                    <td>2024-05-10 09:12:15</td>
+                    <td>safe-website.com</td>
+                    <td>Analysis Completed</td>
+                    <td><span class="tag tag-safe">Safe</span></td>
+                </tr>
+            </tbody>
+        </table>
+        <div id="activity-empty" class="empty-state" style="display: none;">
+            <p>No NSFW activity recorded yet.</p>
+        </div>
+        <div class="pagination" id="activity-pagination"></div>
+    </div>
+</div>
+
+<!-- NSFW Protection Settings -->
+<div class="card settings-panel">
+    <div class="chart-header">
+        <h3>NSFW Protection Settings</h3>
+        <div class="chart-actions">
+            <button id="save-settings-btn" class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+    </div>
+    
+    <div class="settings-grid">
+        <div class="panel">
+            <h4>General Settings</h4>
+            
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-title">Enable NSFW Protection</div>
+                    <div class="setting-description">Detect and block NSFW content across websites</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="nsfw-protection-toggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-title">Show Warning Page</div>
+                    <div class="setting-description">Display a warning before accessing NSFW content</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="warning-page-toggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-title">Auto-Block NSFW Content</div>
+                    <div class="setting-description">Automatically block access to detected NSFW content</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="auto-block-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+        
+        <div class="panel">
+            <h4>Detection Settings</h4>
+            
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-title">Detection Sensitivity</div>
+                    <div class="setting-description">Adjust how sensitive the NSFW detection should be</div>
+                </div>
+                <select id="sensitivity-select" class="form-control">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                </select>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-title">Scan Images</div>
+                    <div class="setting-description">Analyze images for NSFW content</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="scan-images-toggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-title">Scan Text</div>
+                    <div class="setting-description">Analyze page text for explicit content</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="scan-text-toggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
         </div>
     </div>
 </div>
@@ -519,6 +879,107 @@
                 console.log(`Showing data for period: ${this.dataset.period}`);
             });
         });
+        
+        // NSFW Data Handling
+        function loadNsfwData() {
+            // In a real application, this would fetch data from the backend
+            // For now, we're using the placeholder data already in the HTML
+            
+            // Mock function to simulate data loading from extension storage
+            // In production, this would be replaced with actual API calls
+            console.log("Loading NSFW data from extension storage...");
+            
+            // Simulate refresh functionality
+            document.getElementById('nsfw-refresh-btn').addEventListener('click', function() {
+                this.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Refreshing...';
+                setTimeout(() => {
+                    this.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+                    // Would update data here in production
+                }, 1000);
+            });
+            
+            // Simulate activity refresh functionality
+            document.getElementById('activity-refresh-btn').addEventListener('click', function() {
+                this.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Refreshing...';
+                setTimeout(() => {
+                    this.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+                    // Would update data here in production
+                }, 1000);
+            });
+            
+            // Simulate save settings functionality
+            document.getElementById('save-settings-btn').addEventListener('click', function() {
+                this.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Saving...';
+                setTimeout(() => {
+                    this.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+                    showNotification('Settings saved successfully!');
+                }, 1000);
+            });
+            
+            // Toggle behavior for settings
+            document.querySelectorAll('.toggle-switch input').forEach(toggle => {
+                toggle.addEventListener('change', function() {
+                    const settingId = this.id;
+                    const isEnabled = this.checked;
+                    console.log(`Setting ${settingId} changed to ${isEnabled}`);
+                    
+                    // Special handling for dependencies
+                    if (settingId === 'nsfw-protection-toggle' && !isEnabled) {
+                        // If main protection is disabled, disable dependent features
+                        document.getElementById('warning-page-toggle').disabled = true;
+                        document.getElementById('auto-block-toggle').disabled = true;
+                    } else if (settingId === 'nsfw-protection-toggle' && isEnabled) {
+                        // If main protection is enabled, enable dependent features
+                        document.getElementById('warning-page-toggle').disabled = false;
+                        document.getElementById('auto-block-toggle').disabled = false;
+                    }
+                });
+            });
+        }
+        
+        // Simple notification function
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <i class="fas fa-check-circle"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            document.body.appendChild(notification);
+            
+            // Style the notification
+            Object.assign(notification.style, {
+                position: 'fixed',
+                bottom: '20px',
+                right: '20px',
+                backgroundColor: '#4CAF50',
+                color: 'white',
+                padding: '10px 20px',
+                borderRadius: '4px',
+                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
+                zIndex: '1000',
+                transform: 'translateY(100px)',
+                transition: 'transform 0.3s ease-out'
+            });
+            
+            // Animate in
+            setTimeout(() => {
+                notification.style.transform = 'translateY(0)';
+            }, 10);
+            
+            // Remove after delay
+            setTimeout(() => {
+                notification.style.transform = 'translateY(100px)';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+        
+        // Initialize NSFW data
+        loadNsfwData();
     });
 </script>
 {% endblock %} 
