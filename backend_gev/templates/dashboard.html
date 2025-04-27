@@ -409,7 +409,7 @@
 
 {% block content %}
 <div class="dashboard-header">
-    <h2>Security Dashboard</h2>
+    <h2>Email Security Dashboard</h2>
     <div class="dashboard-actions">
         <button id="refresh-btn"><i class="fas fa-sync-alt"></i> Refresh Data</button>
         <button id="export-btn"><i class="fas fa-download"></i> Export Report</button>
@@ -418,7 +418,7 @@
 
 <div class="stats-container">
     <div class="stat-card">
-        <h3>Total Scans</h3>
+        <h3>Emails Scanned</h3>
         <div class="stat-value">{{ stats.total_emails|default('2,458') }}</div>
         <div class="stat-trend trend-up"><i class="fas fa-arrow-up"></i> 12% from last month</div>
     </div>
@@ -473,7 +473,7 @@
 <div class="dashboard-grid">
     <div class="chart-container">
         <div class="chart-header">
-            <h3>Threats Over Time</h3>
+            <h3>Phishing Threats Over Time</h3>
             <div class="chart-actions">
                 <button data-period="week">Week</button>
                 <button data-period="month" class="active">Month</button>
@@ -485,7 +485,7 @@
     
     <div class="chart-container">
         <div class="chart-header">
-            <h3>Threat Types</h3>
+            <h3>Phishing Types</h3>
             <div class="chart-actions">
                 <button><i class="fas fa-ellipsis-h"></i></button>
             </div>
@@ -495,7 +495,7 @@
     
     <div class="chart-container">
         <div class="chart-header">
-            <h3>Common Attack Keywords</h3>
+            <h3>Common Phishing Keywords</h3>
             <div class="chart-actions">
                 <button><i class="fas fa-ellipsis-h"></i></button>
             </div>
@@ -516,7 +516,7 @@
 
 <div class="card recent-detections">
     <div class="chart-header">
-        <h3>Recent Detections</h3>
+        <h3>Recent Email Detections</h3>
         <div class="chart-actions">
             <button><i class="fas fa-filter"></i> Filter</button>
             <button><i class="fas fa-ellipsis-h"></i></button>
