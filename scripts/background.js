@@ -664,6 +664,7 @@ function scanEmail(emailData, tabId, sendResponse) {
 
         // Map the API response to the expected format
         // Ensure we include all necessary fields for the content script
+        // Remove any confidence-related fields
         sendResponse({
           success: data.success === true,
           isPhishing: data.result === 'spam',
