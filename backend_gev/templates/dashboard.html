@@ -470,6 +470,34 @@
     </div>
 </div>
 
+<!-- URL Scanner Stats Row -->
+<h2 class="section-title">URL Scanner</h2>
+<div class="stats-container">
+    <div class="stat-card">
+        <h3>URLs Scanned</h3>
+        <div class="stat-value" id="urls-scanned">0</div>
+        <div class="stat-trend trend-up"><i class="fas fa-arrow-up"></i> 18% from last month</div>
+    </div>
+    
+    <div class="stat-card">
+        <h3>Malicious URLs</h3>
+        <div class="stat-value warning-value" id="malicious-urls">0</div>
+        <div class="stat-trend trend-up"><i class="fas fa-arrow-up"></i> 7% from last month</div>
+    </div>
+    
+    <div class="stat-card">
+        <h3>Safe URLs</h3>
+        <div class="stat-value success-value" id="safe-urls">0</div>
+        <div class="stat-trend trend-up"><i class="fas fa-arrow-up"></i> 20% from last month</div>
+    </div>
+    
+    <div class="stat-card">
+        <h3>Detection Rate</h3>
+        <div class="stat-value" id="url-detection-rate">13.3%</div>
+        <div class="stat-trend trend-up"><i class="fas fa-arrow-up"></i> 1.5% from last month</div>
+    </div>
+</div>
+
 <div class="card recent-detections">
     <div class="chart-header">
         <h3>Recent Email Detections</h3>
@@ -765,6 +793,12 @@
             document.querySelectorAll('.card.recent-detections')[2],  // NSFW Activity Log
             document.querySelector('.card.settings-panel')  // NSFW Settings
         ];
+        
+        // URL Scanner sections
+        const urlScannerSections = [
+            document.querySelectorAll('.section-title')[1],  // URL Scanner title
+            document.querySelectorAll('.stats-container')[2],  // URL Scanner stats container
+        ];
 
         // Always show NSFW sections - removing the conditional check
         /*
@@ -775,13 +809,20 @@
         }
         */
         
-        // Make sure NSFW sections are visible
+        // Make sure NSFW and URL Scanner sections are visible
         nsfwSections.forEach(section => {
+            if (section) section.style.display = '';
+        });
+        
+        urlScannerSections.forEach(section => {
             if (section) section.style.display = '';
         });
 
         // Load NSFW data regardless of source
         loadNsfwData();
+        
+        // Load URL Scanner data
+        loadUrlScannerData();
 
         // Original dashboard code
         // Sample data for charts
@@ -1070,6 +1111,28 @@
                 
                 showNotification('Domain added to whitelist');
             }
+        }
+        
+        // URL Scanner Data Handling
+        function loadUrlScannerData() {
+            console.log("Loading URL Scanner data...");
+            
+            // Sample data to populate the stats
+            const urlData = {
+                scanned: 458,
+                malicious: 61,
+                safe: 397,
+                detectionRate: '13.3%'
+            };
+            
+            // Update stats with sample data
+            document.getElementById('urls-scanned').textContent = urlData.scanned;
+            document.getElementById('malicious-urls').textContent = urlData.malicious;
+            document.getElementById('safe-urls').textContent = urlData.safe;
+            document.getElementById('url-detection-rate').textContent = urlData.detectionRate;
+            
+            // In a real application, this would fetch data from the backend
+            // and possibly set up event listeners for refresh buttons
         }
         
         // Simple notification function
