@@ -46,7 +46,6 @@ document.addEventListener('DOMContentLoaded', function () {
                             <p>This email appears to be a phishing attempt. We recommend not interacting with it.</p>
                             <div class="result-details">
                                 <p><strong>Classification:</strong> ${data.result.toUpperCase()}</p>
-                                <p><strong>Confidence:</strong> 94%</p>
                                 <p><strong>Original Label:</strong> ${data.original_label || 'N/A'}</p>
                             </div>
                         `;
@@ -59,7 +58,6 @@ document.addEventListener('DOMContentLoaded', function () {
                             <p>This email appears to be legitimate. However, always remain vigilant.</p>
                             <div class="result-details">
                                 <p><strong>Classification:</strong> ${data.result.toUpperCase()}</p>
-                                <p><strong>Confidence:</strong> 87%</p>
                                 <p><strong>Original Label:</strong> ${data.original_label || 'N/A'}</p>
                             </div>
                         `;

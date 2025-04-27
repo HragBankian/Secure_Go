@@ -630,25 +630,21 @@ async function handleEmailAnalysis(emailData) {
         
         // Process the results and display notification
         if (data && data.result) {
-          // Parse confidence value to ensure it's a proper percentage
-          const confidence = parseFloat(data.confidence);
-          const formattedConfidence = isNaN(confidence) ? "unknown" : `${(confidence * 100).toFixed(1)}%`;
-          
           // Use the new notification system
           if (data.result === "spam") {
             displayResultNotification(
-              `🚨 This email is likely phishing (confidence: ${formattedConfidence})`,
+              `🚨 This email is likely phishing`,
               true
             );
           } else {
             displayResultNotification(
-              `✅ This email appears to be legitimate (confidence: ${formattedConfidence})`,
+              `✅ This email appears to be legitimate`,
               false
             );
           }
           
           // Log analysis details for debugging
-          console.log(`Classification: ${data.result}, Confidence: ${formattedConfidence}`);
+          console.log(`Classification: ${data.result}`);
         } else {
           throw new Error("Invalid response format");
         }

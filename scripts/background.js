@@ -669,7 +669,6 @@ function scanEmail(emailData, tabId, sendResponse) {
           isPhishing: data.result === 'spam',
           result: data.result || 'unknown',
           originalLabel: data.original_label || data.result,
-          confidence: data.confidence || 0.9,
           explanation: "Analysis complete.",
           emailPreview: data.email_preview || emailData.content.substring(0, 100)
         });

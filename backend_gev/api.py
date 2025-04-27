@@ -370,7 +370,6 @@ def analyze_email():
             'success': True,
             'result': classification,
             'original_label': result,
-            'confidence': 0.9,  # Placeholder until we implement confidence scores
             'email_preview': email_text[:100] + '...' if len(email_text) > 100 else email_text
         })
     

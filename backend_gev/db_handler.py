@@ -3,6 +3,16 @@ import sys
 import datetime
 from typing import Dict, Any
 
+# Define DummyCollection for fallback when MongoDB isn't available
+class DummyCollection:
+    def __init__(self):
+        pass
+    def insert_one(self, doc):
+        print(f"MOCK: Would insert document: {doc}")
+        return type('obj', (object,), {'inserted_id': 'mock_id'})
+    def find(self, *args, **kwargs):
+        return []
+
 # Add the parent directory to the path so we can import backend modules
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -22,15 +32,6 @@ except ImportError as e:
     print(f"Error importing MongoDB connection: {e}")
     DB_AVAILABLE = False
     # Create dummy objects for testing
-    class DummyCollection:
-        def __init__(self):
-            pass
-        def insert_one(self, doc):
-            print(f"MOCK: Would insert document: {doc}")
-            return type('obj', (object,), {'inserted_id': 'mock_id'})
-        def find(self, *args, **kwargs):
-            return []
-    
     # Set up dummy db objects
     collection = DummyCollection()
     scan_stats_collection = DummyCollection()
