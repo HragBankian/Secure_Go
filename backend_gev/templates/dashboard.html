@@ -766,12 +766,22 @@
             document.querySelector('.card.settings-panel')  // NSFW Settings
         ];
 
-        // Hide NSFW sections if not coming from extension
+        // Always show NSFW sections - removing the conditional check
+        /*
         if (!isFromExtension) {
             nsfwSections.forEach(section => {
                 if (section) section.style.display = 'none';
             });
         }
+        */
+        
+        // Make sure NSFW sections are visible
+        nsfwSections.forEach(section => {
+            if (section) section.style.display = '';
+        });
+
+        // Load NSFW data regardless of source
+        loadNsfwData();
 
         // Original dashboard code
         // Sample data for charts
