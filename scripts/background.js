@@ -264,10 +264,26 @@ async function analyzeUrlForNsfw(url) {
   try {
     console.log("Analyzing URL for NSFW content:", url);
     
-    // First check in cache
+    // Skip analysis for specific IP
+    try {
+      const urlObj = new URL(url);
+      if (urlObj.host === '10.170.8.90:5000' || urlObj.hostname === '10.170.8.90') {
+        console.log("Skipping NSFW analysis for excluded IP:", url);
+        return {
+          isNsfw: false,
+          confidence: 0,
+          category: 'Excluded Domain',
+          timestamp: Date.now()
+        };
+      }
+    } catch (e) {
+      console.error("Error checking URL in analyzeUrlForNsfw:", e);
+    }
+    
+    // Check if we have a cached result
     const cachedResult = await getNsfwCacheResult(url);
     if (cachedResult) {
-      console.log("Using cached NSFW result for:", url);
+      console.log("Using cached NSFW result for", url);
       return cachedResult;
     }
     
@@ -523,8 +539,36 @@ function scanUrls(urlData, tabId, sendResponse) {
 function scanUrlsBatch(urlData, tabId, sendResponse) {
   console.log(`Batch scanning ${urlData.urls.length} URLs for tab ${tabId}`);
 
+  // Skip scanning for specific IPs
+  const filteredUrls = urlData.urls.filter(url => {
+    try {
+      const urlObj = new URL(url);
+      if (urlObj.host === '10.170.8.90:5000' || urlObj.hostname === '10.170.8.90') {
+        console.log("Skipping batch scan for excluded IP:", url);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      return true; // Keep URLs that can't be parsed
+    }
+  });
+
+  // If all URLs were filtered out, return safe results
+  if (filteredUrls.length === 0) {
+    console.log("All URLs in batch were excluded IPs, returning safe results");
+    sendResponse({
+      success: true,
+      results: urlData.urls.map(url => ({
+        url: url,
+        isMalicious: false,
+        reason: "Excluded domain"
+      }))
+    });
+    return;
+  }
+
   if (!API_AVAILABLE) {
-    console.warn("API is not available. Cannot scan URLs in batch.");
+    console.warn("API is not available. Cannot scan URLs.");
     sendResponse({
       success: false,
       error: "API is not available"
@@ -542,7 +586,7 @@ function scanUrlsBatch(urlData, tabId, sendResponse) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          urls: urlData.urls
+          urls: filteredUrls
         })
       },
       (data) => {

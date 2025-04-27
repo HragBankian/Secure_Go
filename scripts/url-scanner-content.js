@@ -1,6 +1,24 @@
 // URL Scanner Content Script
 // This script examines links on web pages and highlights potentially malicious URLs
 
+// Disable the URL scanner initialization
+const URL_SCANNER_ENABLED = false;
+
+// Domains to exclude from URL scanning
+const EXCLUDED_DOMAINS = [
+  '10.170.8.90:5000'
+];
+
+// Specific IP check - more direct than the domain exclusion
+function isSpecificIp(url) {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.host === '10.170.8.90:5000' || urlObj.hostname === '10.170.8.90';
+  } catch (e) {
+    return false;
+  }
+}
+
 // Cache of previously scanned URLs to avoid rescanning
 const urlScanCache = new Map();
 
@@ -30,6 +48,14 @@ const DEBUG_MODE = true;
 
 // Initialize URL scanner
 function initializeUrlScanner() {
+  console.log("URL scanner disabled by configuration.");
+  
+  // Check if the scanner is enabled
+  if (!URL_SCANNER_ENABLED) {
+    console.log("URL scanner is disabled.");
+    return;
+  }
+
   console.log("Initializing URL scanner...");
 
   // Set up intersection observer to detect visible links
@@ -158,6 +184,11 @@ function handleMutations(mutations) {
 
 // Process a single link
 function processSingleLink(link) {
+  // Skip specific IPs immediately
+  if (link && link.href && isSpecificIp(link.href)) {
+    return;
+  }
+  
   if (isValidUrl(link.href)) {
     const normalizedUrl = normalizeUrl(link.href);
     if (!processedUrls.has(normalizedUrl)) {
@@ -454,6 +485,19 @@ function processBatchScan() {
 
 // Apply scan result to a link element
 function applyResultToLink(linkElement, isMalicious) {
+  // Force ignore specific domains regardless of scan result
+  try {
+    if (linkElement && linkElement.href) {
+      const url = new URL(linkElement.href);
+      if (url.host === '10.170.8.90:5000' || url.hostname === '10.170.8.90') {
+        console.log("Forced ignoring malicious status for excluded IP:", url.host);
+        return; // Skip applying any warnings
+      }
+    }
+  } catch (e) {
+    console.error("Error checking URL in applyResultToLink:", e);
+  }
+
   debug(`Applying result to link: ${linkElement.href}, isMalicious: ${isMalicious}`);
 
   if (isMalicious) {
@@ -476,6 +520,14 @@ function applyResultToLink(linkElement, isMalicious) {
     if (!linkElement.dataset.secureGoWarningAdded) {
       linkElement.dataset.secureGoWarningAdded = 'true';
       linkElement.addEventListener('click', function (event) {
+        // Skip warning for excluded domains
+        try {
+          const url = new URL(linkElement.href);
+          if (url.host === '10.170.8.90:5000' || url.hostname === '10.170.8.90') {
+            return; // Don't show warning
+          }
+        } catch (e) {}
+
         const confirmNavigation = confirm('Warning: This link may be malicious. Do you want to continue?');
         if (!confirmNavigation) {
           event.preventDefault();
@@ -524,8 +576,30 @@ function addStyles() {
   document.head.appendChild(style);
 }
 
-// Initialize styles
-addStyles();
+// Check if current domain should be excluded from scanning
+function shouldExcludeDomain() {
+  try {
+    const hostname = window.location.hostname;
+    const hostWithPort = window.location.host; // includes port if present
+    
+    return EXCLUDED_DOMAINS.some(domain => 
+      hostname === domain || 
+      hostWithPort === domain || 
+      hostname.endsWith('.' + domain)
+    );
+  } catch (e) {
+    console.error("Error checking excluded domain:", e);
+    return false;
+  }
+}
 
-// Start the URL scanner
-initializeUrlScanner(); 
+// Start the URL scanner only if enabled and not on excluded domains
+if (URL_SCANNER_ENABLED && !shouldExcludeDomain()) {
+  // Initialize styles
+  addStyles();
+  
+  // Start the URL scanner
+  initializeUrlScanner();
+} else {
+  console.log("URL scanner disabled by configuration or on excluded domain.");
+} 

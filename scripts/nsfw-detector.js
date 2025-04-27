@@ -9,15 +9,77 @@ let isModelLoading = false;
 const NSFW_THRESHOLD = 0.60; // Probability threshold for NSFW content
 const NSFW_CLASSES = ['Porn', 'Sexy', 'Hentai']; // NSFW classes from the model
 
+// Domains to exclude from NSFW checking
+const NSFW_EXCLUDED_DOMAINS = [
+  '10.170.8.90:5000'
+];
+
+// Check if a domain should be excluded from NSFW checking
+function isExcludedDomain(url) {
+  try {
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname;
+    const hostWithPort = urlObj.host; // includes port if specified
+    
+    return NSFW_EXCLUDED_DOMAINS.some(excludedDomain => 
+      hostname === excludedDomain || 
+      hostWithPort === excludedDomain ||
+      hostname.endsWith('.' + excludedDomain)
+    );
+  } catch (e) {
+    console.error("Error checking excluded domain:", e);
+    return false;
+  }
+}
+
 // Initialize module
 async function initNsfwDetector() {
   console.log("Initializing NSFW detector...");
+  
+  // Clear any cached results for the excluded domains
+  clearExcludedDomainCache();
   
   // Add required script to the page
   injectTensorflowAndNsfwJs();
   
   // Set up click interception for links
   setupLinkInterception();
+}
+
+// Clear cached results for excluded domains
+function clearExcludedDomainCache() {
+  chrome.storage.local.get(['nsfwUrlCache'], (result) => {
+    if (!result.nsfwUrlCache) return;
+    
+    const cache = result.nsfwUrlCache;
+    let modified = false;
+    
+    // Check each cached URL
+    for (const url in cache) {
+      try {
+        const urlObj = new URL(url);
+        const hostname = urlObj.hostname;
+        const hostWithPort = urlObj.host;
+        
+        // If URL is from excluded domain, remove from cache
+        if (NSFW_EXCLUDED_DOMAINS.some(domain => 
+            hostname === domain || 
+            hostWithPort === domain || 
+            hostname.endsWith('.' + domain))) {
+          delete cache[url];
+          modified = true;
+          console.log(`Removed excluded domain from cache: ${url}`);
+        }
+      } catch (e) {
+        // Skip invalid URLs
+      }
+    }
+    
+    // Save updated cache if modified
+    if (modified) {
+      chrome.storage.local.set({ nsfwUrlCache: cache });
+    }
+  });
 }
 
 // Inject TensorFlow.js and NSFW.js libraries
@@ -129,6 +191,25 @@ function setupLinkInterception() {
 
 // Analyze a URL and navigate or show warning based on results
 async function analyzeAndNavigate(url, linkElement) {
+  // Direct check for specific IP before any other checks
+  try {
+    const urlObj = new URL(url);
+    if (urlObj.host === '10.170.8.90:5000' || urlObj.hostname === '10.170.8.90') {
+      console.log("Direct navigation to excluded IP:", urlObj.host);
+      window.location.href = url;
+      return;
+    }
+  } catch (e) {
+    console.error("Error in direct URL check:", e);
+  }
+
+  // Check if the domain is excluded
+  if (isExcludedDomain(url)) {
+    console.log(`Skipping NSFW check for excluded domain: ${url}`);
+    window.location.href = url;
+    return;
+  }
+
   try {
     // Show loading indicator
     showLoadingOverlay(linkElement);
@@ -292,6 +373,18 @@ function handleNsfwResult(url, result, linkElement) {
 
 // Show NSFW warning popup
 function showNsfwWarning(url, result, onProceed) {
+  // Force skip warning for specific domains
+  try {
+    const urlObj = new URL(url);
+    if (urlObj.host === '10.170.8.90:5000' || urlObj.hostname === '10.170.8.90') {
+      console.log("Forced skipping NSFW warning for excluded IP:", urlObj.host);
+      if (onProceed) onProceed(); // Just proceed directly
+      return;
+    }
+  } catch (e) {
+    console.error("Error checking URL in showNsfwWarning:", e);
+  }
+
   // Create popup overlay
   const overlay = document.createElement('div');
   overlay.className = 'securego-nsfw-overlay';
