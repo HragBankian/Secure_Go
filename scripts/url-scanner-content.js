@@ -48,8 +48,6 @@ const DEBUG_MODE = true;
 
 // Initialize URL scanner
 function initializeUrlScanner() {
-  console.log("URL scanner disabled by configuration.");
-  
   // Check if the scanner is enabled
   if (!URL_SCANNER_ENABLED) {
     console.log("URL scanner is disabled.");
@@ -427,6 +425,30 @@ function processBatchScan() {
 
             // Cache the result
             urlScanCache.set(normalizedUrl, isMalicious);
+
+            // Update URL scanner statistics in local storage
+            chrome.storage.local.get(['urlScannerStats'], function(result) {
+              const stats = result.urlScannerStats || {
+                totalScanned: 0,
+                maliciousCount: 0,
+                safeCount: 0,
+                detectionRate: 0,
+                lastUpdated: Date.now()
+              };
+              
+              stats.totalScanned++;
+              if (isMalicious) {
+                stats.maliciousCount++;
+              } else {
+                stats.safeCount++;
+              }
+              
+              stats.detectionRate = stats.totalScanned > 0 ? 
+                (stats.maliciousCount / stats.totalScanned) : 0;
+              stats.lastUpdated = Date.now();
+              
+              chrome.storage.local.set({ 'urlScannerStats': stats });
+            });
 
             // If we have the link element cached from visible queue, apply directly
             if (linkElements.has(normalizedUrl)) {
