@@ -13,6 +13,9 @@ import functools
 import time
 from collections import OrderedDict
 from typing import Dict, List, Tuple, Any
+import json
+import traceback
+from datetime import timedelta
 
 # Ensure NLTK resources are downloaded
 try:
@@ -26,18 +29,47 @@ except LookupError:
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-# Track some basic stats
+# Import DB handler early to ensure we can load stats before defining the stats dictionary
+try:
+    from db_handler import save_stats, get_historical_stats, load_last_stats, DB_AVAILABLE
+    print("Database handler imported successfully")
+except ImportError as e:
+    print(f"Warning: Could not import database handler: {e}")
+    DB_AVAILABLE = False
+    # Create dummy functions in case the import fails
+    def save_stats(stats):
+        print("Database functionality not available - stats not saved")
+        return False
+    def get_historical_stats(days=7):
+        return []
+    def load_last_stats():
+        return {}
+
+# Try to load previous stats from database
+previous_stats = {}
+if DB_AVAILABLE:
+    try:
+        previous_stats = load_last_stats()
+        print(f"Loaded previous stats: Emails={previous_stats.get('total_emails', 0)}, URLs={previous_stats.get('url_scans', 0)}")
+    except Exception as e:
+        print(f"Error loading previous stats: {e}")
+        previous_stats = {}
+
+# Track some basic stats, initialized with previous values if available
 stats = {
-    'total_emails': 0,
-    'phishing_emails': 0,
-    'legitimate_emails': 0,
-    'detection_rate': '0%',
-    'recent_detections': [],
-    'url_scans': 0,
-    'malicious_urls': 0,
+    'total_emails': previous_stats.get('total_emails', 0),
+    'phishing_emails': previous_stats.get('phishing_emails', 0),
+    'legitimate_emails': previous_stats.get('legitimate_emails', 0),
+    'detection_rate': previous_stats.get('detection_rate', '0%'),
+    'recent_detections': previous_stats.get('recent_detections', []),
+    'url_scans': previous_stats.get('url_scans', 0),
+    'malicious_urls': previous_stats.get('malicious_urls', 0),
     'start_time': datetime.datetime.now().isoformat(),
-    'api_version': '1.1.0'  # Track API version
+    'api_version': '1.1.0',  # Track API version
+    'last_db_save': 'Never'
 }
+
+print(f"Initial stats: {stats['total_emails']} emails, {stats['url_scans']} URLs scanned")
 
 # Initialize lemmatizer and stopwords
 lemmatizer = WordNetLemmatizer()
@@ -47,6 +79,13 @@ stop_words = set(stopwords.words('english'))
 url_cache: OrderedDict = OrderedDict()
 URL_CACHE_SIZE = 10000  # Maximum number of URLs to cache
 URL_CACHE_LOCK = threading.Lock()  # Thread safety for cache access
+
+# Create a save lock and tracking variables for optimized saving
+SAVE_LOCK = threading.Lock()
+last_save_time = time.time()
+pending_changes = False
+save_timer = None
+MIN_SAVE_INTERVAL = 10  # Minimum seconds between saves (to prevent excessive saves)
 
 # Text preprocessing function
 def preprocess_text(text):
@@ -112,7 +151,24 @@ class PhishingDetectionModel(torch.nn.Module):
 
 def load_model(model_path):
     """Load the trained model from a .pth file"""
-    checkpoint = torch.load(model_path, map_location=torch.device('cpu'))
+    # Add TfidfVectorizer to PyTorch's safe globals list to fix the loading issue in PyTorch 2.6+
+    try:
+        import sklearn.feature_extraction.text
+        import torch.serialization
+        torch.serialization.add_safe_globals([sklearn.feature_extraction.text.TfidfVectorizer])
+        print("Added TfidfVectorizer to safe globals list")
+    except (ImportError, AttributeError) as e:
+        print(f"Warning: Could not add TfidfVectorizer to safe globals: {e}")
+        
+    try:
+        # Try with the new safe globals approach first
+        checkpoint = torch.load(model_path, map_location=torch.device('cpu'))
+    except Exception as e:
+        print(f"First load attempt failed: {e}")
+        # Fall back to the legacy approach (less secure but needed for older models)
+        checkpoint = torch.load(model_path, map_location=torch.device('cpu'), weights_only=False)
+        print("Loaded model with weights_only=False (legacy mode)")
+    
     input_size = checkpoint['input_size']
     # Check if we need to specify the number of classes
     if 'num_classes' in checkpoint:
@@ -192,7 +248,73 @@ def index():
 def dashboard():
     return render_template('dashboard.html', stats=stats)
 
-# API endpoint to analyze emails
+# Function to efficiently handle saving stats to MongoDB
+def save_stats_if_needed(force=False):
+    """
+    Save stats to MongoDB only if necessary and not too frequent.
+    This reduces database load while ensuring stats are still saved.
+    
+    Args:
+        force: If True, save regardless of timing constraints
+    """
+    global last_save_time, pending_changes, save_timer
+    
+    # If database isn't available, don't bother
+    if not DB_AVAILABLE:
+        return False
+        
+    current_time = time.time()
+    time_since_last_save = current_time - last_save_time
+    
+    # Only acquire the lock if we might actually save
+    if force or (pending_changes and time_since_last_save >= MIN_SAVE_INTERVAL):
+        with SAVE_LOCK:
+            # Check again inside the lock
+            if force or (pending_changes and time_since_last_save >= MIN_SAVE_INTERVAL):
+                try:
+                    # Perform the actual save
+                    print(f"Saving stats to MongoDB (forced={force})")
+                    save_success = save_stats(stats)
+                    
+                    if save_success:
+                        # Update tracking variables
+                        last_save_time = time.time()
+                        pending_changes = False
+                        stats['last_db_save'] = datetime.datetime.now().isoformat()
+                        print(f"Stats saved: {stats['total_emails']} emails, {stats['url_scans']} URLs")
+                        return True
+                    else:
+                        print("Failed to save stats to MongoDB")
+                except Exception as e:
+                    print(f"Error saving stats to MongoDB: {e}")
+    
+    # If we didn't save but have pending changes, schedule a future save
+    if pending_changes and save_timer is None:
+        # Calculate how long to wait before the next save
+        wait_time = max(0, MIN_SAVE_INTERVAL - time_since_last_save)
+        save_timer = threading.Timer(wait_time, delayed_save)
+        save_timer.daemon = True  # Allow the program to exit if this is still running
+        save_timer.start()
+        print(f"Scheduled save in {wait_time:.1f} seconds")
+    
+    return False
+
+def delayed_save():
+    """Handler for the delayed save timer"""
+    global save_timer
+    save_timer = None  # Clear the timer reference
+    save_stats_if_needed(force=True)  # Force a save
+
+def mark_stats_changed():
+    """
+    Mark that stats have changed and need to be saved
+    """
+    global pending_changes
+    pending_changes = True
+    # Try to save if it's been long enough
+    save_stats_if_needed()
+
+# Replace the analyze_email function with this optimized version
 @app.route('/AI', methods=['POST'])
 @app.route('/api/scan/email', methods=['POST'])  # New standardized endpoint
 def analyze_email():
@@ -239,6 +361,9 @@ def analyze_email():
             'email_preview': email_text[:50] + '...' if len(email_text) > 50 else email_text
         })
         stats['recent_detections'] = stats['recent_detections'][:10]
+        
+        # Mark stats as changed - this will trigger a save when appropriate
+        mark_stats_changed()
         
         # Return standardized response format
         return jsonify({
@@ -294,18 +419,27 @@ def get_url_model():
     if url_model is None:
         # Construct absolute path to URL classifier
         model_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend', 'malicious_url_model', 'url_classifier_model.pkl'))
+        
+        # Make sure we handle pickle loading safely
         try:
-            with open(model_path, 'rb') as f:
-                url_model = pickle.load(f)
-            print(f"URL model loaded from {model_path}")
+            try:
+                # First attempt: Use pickle with default safety
+                with open(model_path, 'rb') as f:
+                    url_model = pickle.load(f)
+                print(f"URL model loaded from {model_path}")
+            except Exception as primary_error:
+                print(f"Primary load attempt failed: {primary_error}")
+                # Try backup location
+                backup_path = os.path.join(os.path.dirname(__file__), 'url_classifier_model.pkl')
+                if os.path.exists(backup_path):
+                    with open(backup_path, 'rb') as f:
+                        url_model = pickle.load(f)
+                    print(f"URL model loaded from backup location: {backup_path}")
+                else:
+                    raise FileNotFoundError(f"Could not find URL model at either path")
         except Exception as e:
             print(f"Error loading URL model: {e}")
-            # Try backup location
-            backup_path = os.path.join(os.path.dirname(__file__), 'url_classifier_model.pkl')
-            if os.path.exists(backup_path):
-                with open(backup_path, 'rb') as f:
-                    url_model = pickle.load(f)
-                print(f"URL model loaded from backup location: {backup_path}")
+            print("URL scanning functionality will be unavailable")
     return url_model
 
 def normalize_url(url):
@@ -380,7 +514,7 @@ def scan_single_url(url):
             'rawResult': 'error'
         }
 
-# New endpoint to scan a URL
+# Replace the scan_url function with this optimized version
 @app.route('/scan-url', methods=['POST'])
 @app.route('/api/scan/url', methods=['POST'])  # New standardized endpoint
 def scan_url():
@@ -390,9 +524,13 @@ def scan_url():
         
     url = data['url']
     result = scan_single_url(url)
+    
+    # Mark stats as changed for efficient saving
+    mark_stats_changed()
+    
     return jsonify(result)
 
-# Optimized batch URL scanning
+# Replace the batch URL scanning function with an optimized version
 @app.route('/api/scan/urls', methods=['POST'])
 def scan_urls_batch():
     """Endpoint to scan multiple URLs in a single request"""
@@ -409,6 +547,7 @@ def scan_urls_batch():
     urls = urls[:max_batch]
     
     print(f"Batch scanning {len(urls)} URLs")
+    stats_changed = False  # Track if any stats were updated
     
     # Check which URLs are already in cache
     cached_results = {}
@@ -428,6 +567,7 @@ def scan_urls_batch():
                 url_cache.move_to_end(normalized_url)
                 # Track cache hit
                 stats['cache_hits'] = stats.get('cache_hits', 0) + 1
+                stats_changed = True
             else:
                 urls_to_scan.append((url, normalized_url))
     
@@ -481,6 +621,7 @@ def scan_urls_batch():
                 stats['url_scans'] += 1
                 if is_malicious:
                     stats['malicious_urls'] += 1
+                stats_changed = True
                 
         except Exception as e:
             print(f"Error in batch URL scanning: {e}")
@@ -488,6 +629,11 @@ def scan_urls_batch():
             for url, normalized_url in urls_to_scan:
                 result = scan_single_url(url)
                 results.append(result)
+                stats_changed = True
+    
+    # Mark stats as changed if we updated any stats
+    if stats_changed:
+        mark_stats_changed()
     
     return jsonify({'results': results})
 
@@ -524,10 +670,168 @@ def metrics():
             'email_model_loaded': MODEL_LOADED,
             'url_model_loaded': url_model is not None
         },
-        'recent_scans': stats['recent_detections'][:5]
+        'recent_scans': stats['recent_detections'][:5],
+        'database': {
+            'available': DB_AVAILABLE,
+            'last_save_attempt': stats['last_db_save']
+        }
     })
 
+# Set up a periodic task to save stats to the database (if available)
+def save_stats_periodically():
+    """Save the current stats to the database on a schedule"""
+    # Force a save regardless of the timer constraints
+    save_stats_if_needed(force=True)
+    
+    # Schedule the next periodic save (every 5 minutes)
+    threading.Timer(5 * 60, save_stats_periodically).start()
+
+# Update the refresh stats endpoint to use the new saving mechanism
+@app.route('/api/db/refresh', methods=['POST'])
+def refresh_stats():
+    """Force an immediate save and reload of stats"""
+    if not DB_AVAILABLE:
+        return jsonify({
+            "success": False,
+            "message": "Database functionality not available"
+        }), 503
+    
+    global stats
+    
+    try:
+        # First save current stats (force=True ensures immediate save)
+        print("Forcing immediate save to database...")
+        save_success = save_stats_if_needed(force=True)
+        
+        if save_success:
+            # Then reload from database to verify they're retrievable
+            print("Reloading stats from database...")
+            loaded_stats = load_last_stats()
+            
+            if loaded_stats:
+                # Keep the current start time and API version
+                loaded_stats['start_time'] = stats['start_time']
+                loaded_stats['api_version'] = stats['api_version']
+                
+                # Update the stats object with loaded values
+                stats = loaded_stats
+                print(f"Stats refreshed: {stats['total_emails']} emails, {stats['url_scans']} URLs")
+                
+                return jsonify({
+                    "success": True,
+                    "message": "Stats saved and reloaded successfully",
+                    "timestamp": datetime.datetime.now().isoformat(),
+                    "stats": {
+                        "total_emails": stats['total_emails'],
+                        "phishing_emails": stats['phishing_emails'],
+                        "legitimate_emails": stats['legitimate_emails'],
+                        "url_scans": stats['url_scans'],
+                        "malicious_urls": stats['malicious_urls']
+                    }
+                })
+            else:
+                return jsonify({
+                    "success": True,
+                    "message": "Stats saved but no previous stats were found to load",
+                    "timestamp": datetime.datetime.now().isoformat()
+                })
+        else:
+            return jsonify({
+                "success": False,
+                "message": "Failed to save stats to database",
+                "timestamp": datetime.datetime.now().isoformat()
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+# Add an endpoint for retrieving stats from the database
+@app.route('/api/db/stats', methods=['GET'])
+def get_db_stats():
+    """Get historical statistics from the database"""
+    try:
+        # Get the 'days' parameter from the request
+        days = request.args.get('days', default=7, type=int)
+        
+        # Get the historical stats from the database
+        historical_stats = get_historical_stats(days)
+        
+        # Add the current stats
+        current_stats = {
+            "timestamp": datetime.datetime.now().isoformat(),
+            "email_stats": {
+                "total_emails": stats['total_emails'],
+                "phishing_emails": stats['phishing_emails'],
+                "legitimate_emails": stats['legitimate_emails'],
+                "detection_rate": stats['detection_rate']
+            },
+            "url_stats": {
+                "total_urls": stats['url_scans'],
+                "malicious_urls": stats['malicious_urls']
+            },
+            "api_version": stats['api_version']
+        }
+        
+        return jsonify({
+            "current": current_stats,
+            "historical": historical_stats,
+            "db_available": DB_AVAILABLE
+        })
+    
+    except Exception as e:
+        traceback_str = traceback.format_exc()
+        print(f"Error retrieving DB stats: {e}\n{traceback_str}")
+        return jsonify({
+            "error": str(e),
+            "db_available": DB_AVAILABLE
+        }), 500
+
+# Update the trigger_save_stats endpoint to use the new saving mechanism
+@app.route('/api/db/save-stats', methods=['POST'])
+def trigger_save_stats():
+    """Manually trigger saving the current stats to the database"""
+    if not DB_AVAILABLE:
+        return jsonify({
+            "success": False,
+            "message": "Database functionality not available"
+        }), 503
+    
+    try:
+        success = save_stats_if_needed(force=True)
+        return jsonify({
+            "success": success,
+            "message": "Stats saved successfully" if success else "Failed to save stats",
+            "timestamp": datetime.datetime.now().isoformat()
+        })
+    
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
 if __name__ == '__main__':
+    # Initialize periodic save if database is available
+    if DB_AVAILABLE:
+        print("Starting enhanced stats saving system...")
+        # Save immediately once, then schedule future saves
+        try:
+            initial_save = save_stats_if_needed(force=True)
+            print(f"Initial stats save {'succeeded' if initial_save else 'failed'}")
+            if initial_save:
+                print(f"Initial stats saved: {stats['total_emails']} emails, {stats['url_scans']} URLs")
+        except Exception as e:
+            print(f"Error during initial stats save: {e}")
+        
+        # Start the timer for periodic saves - every 5 minutes
+        print("Scheduling periodic saves every 5 minutes...")
+        threading.Timer(5 * 60, save_stats_periodically).start()
+    else:
+        print("WARNING: Database functionality not available - statistics will not be persisted")
+    
     # Run the Flask app
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True) 
