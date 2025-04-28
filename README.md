@@ -1,4 +1,4 @@
-# SecureGo Chrome Extension
+# SecureGO Chrome Extension
 
 ## Inspiration
 With cyber threats growing every day, we noticed a gap in simple, unified tools that protect users from multiple online dangers at once. Phishing attacks, malicious URLs, and exposure to NSFW content have become common risks — yet most solutions are fragmented or too complex.
