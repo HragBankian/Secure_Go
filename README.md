@@ -6,7 +6,7 @@ With cyber threats growing every day, we noticed a gap in simple, unified tools 
 We wanted to create a lightweight, fast, and user-friendly extension that empowers everyday users to browse safely and confidently. SecureGO was built to solve a real-world societal need: making internet safety accessible for everyone.
 
 ## What it does
-Secure Go is an all-in-one browser extension that keeps users safe online by:
+SecureGO is an all-in-one browser extension that keeps users safe online by:
 - Detecting and warning against phishing emails in real time
 - Identifying and blocking access to malicious or unsafe URLs
 - Blocking NSFW content and warning users before they open inappropriate sites
@@ -35,7 +35,7 @@ Secure Go is an all-in-one browser extension that keeps users safe online by:
 - Data Persistence: Implemented a database to track detection stats across multiple sessions, allowing users to see how their protection evolves over time.
 
 ## What we learned
-- Browser Extension Development: Developing a browser extension introduced us to the complexities of building lightweight, cross-browser compatible applications. We learned how to manage browser security restrictions, handle permissions, and ensure consistent functionality across Chrome and Firefox.
+- Browser Extension Development: Developing a browser extension introduced us to the complexities of building lightweight, cross-browser compatible applications. We learned how to manage browser security restrictions, handle permissions, and ensure consistent functionality across Chrome.
 - Importance of Data Quality: We learned that having high-quality, diverse datasets is crucial for training accurate models. The lack of a suitable malicious URL dataset pushed us to create our own synthetic data, which turned out to be an invaluable learning experience.
 - Model Optimization for Real-Time Use: Training models for real-time applications required us to optimize both the model's performance and speed. We learned how to balance accuracy with efficiency, ensuring minimal impact on the user’s browsing experience.
 - User Experience Matters: Focusing on a lightweight, non-intrusive experience was crucial. The user’s perception of safety is as important as the actual protection, so we prioritized clear alerts, easy-to-understand dashboards, and a smooth overall experience.
